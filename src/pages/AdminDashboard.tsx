@@ -1,0 +1,411 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp } from "lucide-react";
+import type { Session } from "@supabase/supabase-js";
+
+type SectionName = "hero" | "about" | "techStack" | "portfolio" | "testimonials" | "messages" | "settings";
+
+const AdminDashboard = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState<SectionName>("hero");
+
+  // Data states
+  const [hero, setHero] = useState({ id: "", headline: "", subheadline: "", cta_text: "" });
+  const [about, setAbout] = useState({ id: "", title: "", content: "" });
+  const [techStack, setTechStack] = useState<any[]>([]);
+  const [portfolio, setPortfolio] = useState<any[]>([]);
+  const [testimonials, setTestimonials] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+
+  // Settings
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, s) => {
+      setSession(s);
+      if (!s) navigate("/admin/login");
+    });
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s);
+      if (!s) navigate("/admin/login");
+      else fetchAll();
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchAll = async () => {
+    setLoading(true);
+    const [h, a, t, p, te, m] = await Promise.all([
+      supabase.from("hero_section").select("*").limit(1).single(),
+      supabase.from("about_section").select("*").limit(1).single(),
+      supabase.from("tech_stack").select("*").order("sort_order"),
+      supabase.from("portfolio_items").select("*").order("sort_order"),
+      supabase.from("testimonials").select("*").order("sort_order"),
+      supabase.from("contact_messages").select("*").order("created_at", { ascending: false }),
+    ]);
+    if (h.data) setHero(h.data);
+    if (a.data) setAbout(a.data);
+    if (t.data) setTechStack(t.data);
+    if (p.data) setPortfolio(p.data);
+    if (te.data) setTestimonials(te.data);
+    if (m.data) setMessages(m.data);
+    setLoading(false);
+  };
+
+  const saveHero = async () => {
+    const { error } = await supabase.from("hero_section").update({
+      headline: hero.headline,
+      subheadline: hero.subheadline,
+      cta_text: hero.cta_text,
+    }).eq("id", hero.id);
+    toast({ title: error ? "Failed to save" : "Hero section updated!", variant: error ? "destructive" : "default" });
+  };
+
+  const saveAbout = async () => {
+    const { error } = await supabase.from("about_section").update({
+      title: about.title,
+      content: about.content,
+    }).eq("id", about.id);
+    toast({ title: error ? "Failed to save" : "About section updated!", variant: error ? "destructive" : "default" });
+  };
+
+  const saveTechItem = async (item: any) => {
+    const { error } = await supabase.from("tech_stack").update({
+      name: item.name,
+      description: item.description,
+      sort_order: item.sort_order,
+    }).eq("id", item.id);
+    toast({ title: error ? "Failed to save" : `${item.name} updated!`, variant: error ? "destructive" : "default" });
+  };
+
+  const deleteTechItem = async (id: string) => {
+    await supabase.from("tech_stack").delete().eq("id", id);
+    setTechStack(techStack.filter((t) => t.id !== id));
+    toast({ title: "Tool removed" });
+  };
+
+  const addTechItem = async () => {
+    const { data } = await supabase.from("tech_stack").insert({ name: "New Tool", description: "Description", sort_order: techStack.length + 1 }).select().single();
+    if (data) setTechStack([...techStack, data]);
+  };
+
+  const savePortfolioItem = async (item: any) => {
+    const { error } = await supabase.from("portfolio_items").update({
+      title: item.title, description: item.description, client_name: item.client_name,
+      category: item.category, featured: item.featured, video_url: item.video_url,
+    }).eq("id", item.id);
+    toast({ title: error ? "Failed to save" : `${item.title} updated!`, variant: error ? "destructive" : "default" });
+  };
+
+  const deletePortfolioItem = async (id: string) => {
+    await supabase.from("portfolio_items").delete().eq("id", id);
+    setPortfolio(portfolio.filter((p) => p.id !== id));
+    toast({ title: "Project removed" });
+  };
+
+  const addPortfolioItem = async () => {
+    const { data } = await supabase.from("portfolio_items").insert({
+      title: "New Project", description: "Project description", client_name: "Client",
+      category: "Category", sort_order: portfolio.length + 1,
+    }).select().single();
+    if (data) setPortfolio([...portfolio, data]);
+  };
+
+  const saveTestimonial = async (item: any) => {
+    const { error } = await supabase.from("testimonials").update({
+      client_name: item.client_name, client_title: item.client_title, content: item.content, rating: item.rating,
+    }).eq("id", item.id);
+    toast({ title: error ? "Failed to save" : "Testimonial updated!", variant: error ? "destructive" : "default" });
+  };
+
+  const deleteTestimonial = async (id: string) => {
+    await supabase.from("testimonials").delete().eq("id", id);
+    setTestimonials(testimonials.filter((t) => t.id !== id));
+    toast({ title: "Testimonial removed" });
+  };
+
+  const addTestimonial = async () => {
+    const { data } = await supabase.from("testimonials").insert({
+      client_name: "New Client", client_title: "Title", content: "Testimonial text", sort_order: testimonials.length + 1,
+    }).select().single();
+    if (data) setTestimonials([...testimonials, data]);
+  };
+
+  const deleteMessage = async (id: string) => {
+    await supabase.from("contact_messages").delete().eq("id", id);
+    setMessages(messages.filter((m) => m.id !== id));
+  };
+
+  const updateCredentials = async () => {
+    if (newEmail) {
+      const { error } = await supabase.auth.updateUser({ email: newEmail });
+      if (error) toast({ title: "Failed to update email", variant: "destructive" });
+      else toast({ title: "Email update sent. Check your inbox." });
+    }
+    if (newPassword) {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) toast({ title: "Failed to update password", variant: "destructive" });
+      else { toast({ title: "Password updated!" }); setNewPassword(""); }
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/admin/login");
+  };
+
+  const sections: { key: SectionName; label: string; icon: any }[] = [
+    { key: "hero", label: "Hero Section", icon: ChevronUp },
+    { key: "about", label: "About Section", icon: ChevronDown },
+    { key: "techStack", label: "Tech Stack", icon: Settings },
+    { key: "portfolio", label: "Portfolio", icon: Plus },
+    { key: "testimonials", label: "Testimonials", icon: MessageSquare },
+    { key: "messages", label: "Messages", icon: Mail },
+    { key: "settings", label: "Settings", icon: Settings },
+  ];
+
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading...</div>;
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border bg-card/50 backdrop-blur-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <h1 className="font-display font-bold text-xl">
+            <span className="gradient-text">Admin</span> Dashboard
+          </h1>
+          <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-destructive transition-colors">
+            <LogOut className="w-4 h-4" /> Logout
+          </button>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
+        {/* Sidebar */}
+        <aside className="w-56 shrink-0 hidden md:block">
+          <nav className="space-y-1 sticky top-24">
+            {sections.map((s) => (
+              <button
+                key={s.key}
+                onClick={() => setActiveSection(s.key)}
+                className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  activeSection === s.key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Content */}
+        <main className="flex-1 min-w-0">
+          {/* Mobile nav */}
+          <div className="md:hidden mb-6 flex flex-wrap gap-2">
+            {sections.map((s) => (
+              <button
+                key={s.key}
+                onClick={() => setActiveSection(s.key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  activeSection === s.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Hero */}
+          {activeSection === "hero" && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-display font-bold">Hero Section</h2>
+              <div className="p-6 rounded-xl bg-card border border-border space-y-4">
+                <InputField label="Headline" value={hero.headline} onChange={(v) => setHero({ ...hero, headline: v })} />
+                <InputField label="Subheadline" value={hero.subheadline} onChange={(v) => setHero({ ...hero, subheadline: v })} textarea />
+                <InputField label="CTA Text" value={hero.cta_text} onChange={(v) => setHero({ ...hero, cta_text: v })} />
+                <SaveButton onClick={saveHero} />
+              </div>
+            </div>
+          )}
+
+          {/* About */}
+          {activeSection === "about" && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-display font-bold">About Section</h2>
+              <div className="p-6 rounded-xl bg-card border border-border space-y-4">
+                <InputField label="Title" value={about.title} onChange={(v) => setAbout({ ...about, title: v })} />
+                <InputField label="Content" value={about.content} onChange={(v) => setAbout({ ...about, content: v })} textarea rows={10} />
+                <SaveButton onClick={saveAbout} />
+              </div>
+            </div>
+          )}
+
+          {/* Tech Stack */}
+          {activeSection === "techStack" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-display font-bold">Tech Stack</h2>
+                <button onClick={addTechItem} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm rounded-lg font-medium">
+                  <Plus className="w-4 h-4" /> Add Tool
+                </button>
+              </div>
+              {techStack.map((item, i) => (
+                <div key={item.id} className="p-6 rounded-xl bg-card border border-border space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <InputField label="Name" value={item.name} onChange={(v) => { const u = [...techStack]; u[i] = { ...u[i], name: v }; setTechStack(u); }} />
+                    <InputField label="Description" value={item.description || ""} onChange={(v) => { const u = [...techStack]; u[i] = { ...u[i], description: v }; setTechStack(u); }} />
+                  </div>
+                  <div className="flex gap-2">
+                    <SaveButton onClick={() => saveTechItem(techStack[i])} />
+                    <DeleteButton onClick={() => deleteTechItem(item.id)} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Portfolio */}
+          {activeSection === "portfolio" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-display font-bold">Portfolio</h2>
+                <button onClick={addPortfolioItem} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm rounded-lg font-medium">
+                  <Plus className="w-4 h-4" /> Add Project
+                </button>
+              </div>
+              {portfolio.map((item, i) => (
+                <div key={item.id} className="p-6 rounded-xl bg-card border border-border space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <InputField label="Title" value={item.title} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], title: v }; setPortfolio(u); }} />
+                    <InputField label="Client" value={item.client_name || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], client_name: v }; setPortfolio(u); }} />
+                    <InputField label="Category" value={item.category || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], category: v }; setPortfolio(u); }} />
+                    <InputField label="Video URL" value={item.video_url || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], video_url: v }; setPortfolio(u); }} />
+                  </div>
+                  <InputField label="Description" value={item.description || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], description: v }; setPortfolio(u); }} textarea />
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <input type="checkbox" checked={item.featured} onChange={(e) => { const u = [...portfolio]; u[i] = { ...u[i], featured: e.target.checked }; setPortfolio(u); }} className="accent-primary" />
+                      Featured
+                    </label>
+                  </div>
+                  <div className="flex gap-2">
+                    <SaveButton onClick={() => savePortfolioItem(portfolio[i])} />
+                    <DeleteButton onClick={() => deletePortfolioItem(item.id)} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Testimonials */}
+          {activeSection === "testimonials" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-display font-bold">Testimonials</h2>
+                <button onClick={addTestimonial} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm rounded-lg font-medium">
+                  <Plus className="w-4 h-4" /> Add Testimonial
+                </button>
+              </div>
+              {testimonials.map((item, i) => (
+                <div key={item.id} className="p-6 rounded-xl bg-card border border-border space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <InputField label="Client Name" value={item.client_name} onChange={(v) => { const u = [...testimonials]; u[i] = { ...u[i], client_name: v }; setTestimonials(u); }} />
+                    <InputField label="Client Title" value={item.client_title || ""} onChange={(v) => { const u = [...testimonials]; u[i] = { ...u[i], client_title: v }; setTestimonials(u); }} />
+                  </div>
+                  <InputField label="Content" value={item.content} onChange={(v) => { const u = [...testimonials]; u[i] = { ...u[i], content: v }; setTestimonials(u); }} textarea />
+                  <div className="flex gap-2">
+                    <SaveButton onClick={() => saveTestimonial(testimonials[i])} />
+                    <DeleteButton onClick={() => deleteTestimonial(item.id)} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Messages */}
+          {activeSection === "messages" && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-display font-bold">Contact Messages</h2>
+              {messages.length === 0 && <p className="text-muted-foreground">No messages yet.</p>}
+              {messages.map((msg) => (
+                <div key={msg.id} className="p-6 rounded-xl bg-card border border-border space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="font-semibold text-foreground">{msg.name}</div>
+                      <div className="text-sm text-primary">{msg.email}</div>
+                    </div>
+                    <button onClick={() => deleteMessage(msg.id)} className="text-muted-foreground hover:text-destructive">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {msg.subject && <div className="text-sm font-medium text-foreground">{msg.subject}</div>}
+                  <p className="text-muted-foreground text-sm">{msg.message}</p>
+                  <div className="text-xs text-muted-foreground">{new Date(msg.created_at).toLocaleString()}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Settings */}
+          {activeSection === "settings" && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-display font-bold">Account Settings</h2>
+              <div className="p-6 rounded-xl bg-card border border-border space-y-4">
+                <InputField label="New Email" value={newEmail} onChange={setNewEmail} placeholder="Leave blank to keep current" />
+                <InputField label="New Password" value={newPassword} onChange={setNewPassword} placeholder="Leave blank to keep current" type="password" />
+                <SaveButton onClick={updateCredentials} label="Update Credentials" />
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+};
+
+// Reusable components
+const InputField = ({ label, value, onChange, textarea, rows, placeholder, type }: {
+  label: string; value: string; onChange: (v: string) => void;
+  textarea?: boolean; rows?: number; placeholder?: string; type?: string;
+}) => (
+  <div>
+    <label className="text-sm text-muted-foreground mb-1.5 block">{label}</label>
+    {textarea ? (
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={rows || 4}
+        placeholder={placeholder}
+        className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors resize-none text-sm"
+      />
+    ) : (
+      <input
+        type={type || "text"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors text-sm"
+      />
+    )}
+  </div>
+);
+
+const SaveButton = ({ onClick, label }: { onClick: () => void; label?: string }) => (
+  <button onClick={onClick} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:shadow-[var(--shadow-glow)] transition-all">
+    <Save className="w-4 h-4" /> {label || "Save"}
+  </button>
+);
+
+const DeleteButton = ({ onClick }: { onClick: () => void }) => (
+  <button onClick={onClick} className="flex items-center gap-2 px-5 py-2.5 bg-destructive/10 text-destructive text-sm font-medium rounded-lg hover:bg-destructive/20 transition-all">
+    <Trash2 className="w-4 h-4" /> Delete
+  </button>
+);
+
+export default AdminDashboard;
