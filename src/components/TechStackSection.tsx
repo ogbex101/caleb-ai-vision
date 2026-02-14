@@ -5,12 +5,16 @@ import {
 
 const tools = [
   { name: "Runway ML", description: "AI-powered video generation", icon: Wand2 },
-  { name: "Adobe Premiere Pro", description: "Industry-standard editing", icon: Film },
+  { name: "Sora AI", description: "OpenAI video generation", icon: Video },
+  { name: "Kling AI", description: "AI video creation", icon: Sparkles },
+  { name: "CapCut", description: "Smart video editing", icon: Film },
   { name: "DaVinci Resolve", description: "Professional color grading", icon: Palette },
-  { name: "Midjourney", description: "AI image generation", icon: Image },
-  { name: "After Effects", description: "Motion graphics & VFX", icon: Sparkles },
+  { name: "Colossyan", description: "AI video presenter", icon: Monitor },
   { name: "Synthesia", description: "AI avatar creation", icon: Monitor },
   { name: "HeyGen", description: "AI video generation", icon: Video },
+  { name: "Midjourney", description: "AI image generation", icon: Image },
+  { name: "After Effects", description: "Motion graphics & VFX", icon: Sparkles },
+  { name: "Adobe Premiere Pro", description: "Industry-standard editing", icon: Film },
   { name: "Topaz Video AI", description: "AI video enhancement", icon: Layers },
 ];
 
