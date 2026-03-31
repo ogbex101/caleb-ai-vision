@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp } from "lucide-react";
+import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 
 type SectionName = "hero" | "about" | "techStack" | "portfolio" | "testimonials" | "messages" | "settings";
+
+const MAX_VIDEO_SIZE_MB = 50;
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -21,6 +23,9 @@ const AdminDashboard = () => {
   const [portfolio, setPortfolio] = useState<any[]>([]);
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
+
+  // Upload states
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
   // Settings
   const [newEmail, setNewEmail] = useState("");
@@ -60,26 +65,21 @@ const AdminDashboard = () => {
 
   const saveHero = async () => {
     const { error } = await supabase.from("hero_section").update({
-      headline: hero.headline,
-      subheadline: hero.subheadline,
-      cta_text: hero.cta_text,
+      headline: hero.headline, subheadline: hero.subheadline, cta_text: hero.cta_text,
     }).eq("id", hero.id);
     toast({ title: error ? "Failed to save" : "Hero section updated!", variant: error ? "destructive" : "default" });
   };
 
   const saveAbout = async () => {
     const { error } = await supabase.from("about_section").update({
-      title: about.title,
-      content: about.content,
+      title: about.title, content: about.content,
     }).eq("id", about.id);
     toast({ title: error ? "Failed to save" : "About section updated!", variant: error ? "destructive" : "default" });
   };
 
   const saveTechItem = async (item: any) => {
     const { error } = await supabase.from("tech_stack").update({
-      name: item.name,
-      description: item.description,
-      sort_order: item.sort_order,
+      name: item.name, description: item.description, sort_order: item.sort_order,
     }).eq("id", item.id);
     toast({ title: error ? "Failed to save" : `${item.name} updated!`, variant: error ? "destructive" : "default" });
   };
@@ -95,15 +95,77 @@ const AdminDashboard = () => {
     if (data) setTechStack([...techStack, data]);
   };
 
+  // Portfolio video upload
+  const handleVideoUpload = async (index: number, file: File) => {
+    if (file.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+      toast({ title: `Video must be under ${MAX_VIDEO_SIZE_MB}MB`, variant: "destructive" });
+      return;
+    }
+
+    setUploadingIndex(index);
+    const item = portfolio[index];
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${item.id}.${fileExt}`;
+
+    // Delete old file if exists
+    if (item.video_url?.includes('portfolio-videos')) {
+      const oldPath = item.video_url.split('/portfolio-videos/')[1];
+      if (oldPath) await supabase.storage.from('portfolio-videos').remove([oldPath]);
+    }
+
+    const { error: uploadError } = await supabase.storage
+      .from('portfolio-videos')
+      .upload(filePath, file, { cacheControl: '3600', upsert: true, contentType: file.type });
+
+    if (uploadError) {
+      toast({ title: "Upload failed: " + uploadError.message, variant: "destructive" });
+      setUploadingIndex(null);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from('portfolio-videos').getPublicUrl(filePath);
+    const videoUrl = urlData.publicUrl;
+
+    // Update DB
+    const { error } = await supabase.from("portfolio_items").update({ video_url: videoUrl }).eq("id", item.id);
+    if (!error) {
+      const u = [...portfolio];
+      u[index] = { ...u[index], video_url: videoUrl };
+      setPortfolio(u);
+      toast({ title: "Video uploaded successfully!" });
+    } else {
+      toast({ title: "Failed to save video URL", variant: "destructive" });
+    }
+    setUploadingIndex(null);
+  };
+
   const savePortfolioItem = async (item: any) => {
     const { error } = await supabase.from("portfolio_items").update({
       title: item.title, description: item.description, client_name: item.client_name,
-      category: item.category, featured: item.featured, video_url: item.video_url,
+      category: item.category, featured: item.featured, video_url: item.video_url, sort_order: item.sort_order,
     }).eq("id", item.id);
     toast({ title: error ? "Failed to save" : `${item.title} updated!`, variant: error ? "destructive" : "default" });
   };
 
+  const toggleFeatured = async (index: number) => {
+    const u = [...portfolio];
+    u[index] = { ...u[index], featured: !u[index].featured };
+    setPortfolio(u);
+    const { error } = await supabase.from("portfolio_items").update({ featured: u[index].featured }).eq("id", u[index].id);
+    if (error) {
+      toast({ title: "Failed to update", variant: "destructive" });
+    } else {
+      toast({ title: u[index].featured ? "Added to landing page" : "Removed from landing page" });
+    }
+  };
+
   const deletePortfolioItem = async (id: string) => {
+    // Also remove video from storage
+    const item = portfolio.find(p => p.id === id);
+    if (item?.video_url?.includes('portfolio-videos')) {
+      const path = item.video_url.split('/portfolio-videos/')[1];
+      if (path) await supabase.storage.from('portfolio-videos').remove([path]);
+    }
     await supabase.from("portfolio_items").delete().eq("id", id);
     setPortfolio(portfolio.filter((p) => p.id !== id));
     toast({ title: "Project removed" });
@@ -274,26 +336,79 @@ const AdminDashboard = () => {
           {activeSection === "portfolio" && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-display font-bold">Portfolio</h2>
+                <div>
+                  <h2 className="text-2xl font-display font-bold">Portfolio</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Star items to show them on the landing page. All items appear on the portfolio page.
+                  </p>
+                </div>
                 <button onClick={addPortfolioItem} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm rounded-lg font-medium">
                   <Plus className="w-4 h-4" /> Add Project
                 </button>
               </div>
               {portfolio.map((item, i) => (
-                <div key={item.id} className="p-6 rounded-xl bg-card border border-border space-y-4">
+                <div key={item.id} className={`p-6 rounded-xl bg-card border transition-colors space-y-4 ${item.featured ? 'border-primary/60' : 'border-border'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => toggleFeatured(i)}
+                        className={`p-1.5 rounded-lg transition-colors ${item.featured ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-primary'}`}
+                        title={item.featured ? "Remove from landing page" : "Show on landing page"}
+                      >
+                        <Star className={`w-5 h-5 ${item.featured ? 'fill-primary' : ''}`} />
+                      </button>
+                      <span className="text-sm font-medium text-foreground">{item.title || "Untitled"}</span>
+                    </div>
+                    {item.featured && (
+                      <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
+                        On Landing Page
+                      </span>
+                    )}
+                  </div>
+
                   <div className="grid sm:grid-cols-2 gap-4">
                     <InputField label="Title" value={item.title} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], title: v }; setPortfolio(u); }} />
                     <InputField label="Client" value={item.client_name || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], client_name: v }; setPortfolio(u); }} />
                     <InputField label="Category" value={item.category || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], category: v }; setPortfolio(u); }} />
-                    <InputField label="Video URL" value={item.video_url || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], video_url: v }; setPortfolio(u); }} />
+                    <InputField label="Sort Order" value={String(item.sort_order || 0)} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], sort_order: parseInt(v) || 0 }; setPortfolio(u); }} />
                   </div>
                   <InputField label="Description" value={item.description || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], description: v }; setPortfolio(u); }} textarea />
-                  <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <input type="checkbox" checked={item.featured} onChange={(e) => { const u = [...portfolio]; u[i] = { ...u[i], featured: e.target.checked }; setPortfolio(u); }} className="accent-primary" />
-                      Featured
-                    </label>
+
+                  {/* Video Upload */}
+                  <div>
+                    <label className="text-sm text-muted-foreground mb-1.5 block">Video</label>
+                    {item.video_url && (
+                      <div className="mb-3 rounded-lg overflow-hidden border border-border aspect-video max-w-sm">
+                        <video src={item.video_url} className="w-full h-full object-cover" preload="metadata" controls />
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <label className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${
+                        uploadingIndex === i
+                          ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                          : 'bg-accent text-accent-foreground hover:bg-accent/80'
+                      }`}>
+                        {uploadingIndex === i ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</>
+                        ) : (
+                          <><Upload className="w-4 h-4" /> Upload Video</>
+                        )}
+                        <input
+                          type="file"
+                          accept="video/mp4,video/webm,video/quicktime"
+                          className="hidden"
+                          disabled={uploadingIndex === i}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleVideoUpload(i, file);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                      <span className="text-xs text-muted-foreground">Max {MAX_VIDEO_SIZE_MB}MB • MP4, WebM, MOV</span>
+                    </div>
                   </div>
+
                   <div className="flex gap-2">
                     <SaveButton onClick={() => savePortfolioItem(portfolio[i])} />
                     <DeleteButton onClick={() => deletePortfolioItem(item.id)} />
