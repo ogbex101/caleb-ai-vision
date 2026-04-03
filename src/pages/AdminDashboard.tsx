@@ -374,7 +374,7 @@ const AdminDashboard = () => {
                   </div>
                   <InputField label="Description" value={item.description || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], description: v }; setPortfolio(u); }} textarea />
 
-                  {/* Video Upload */}
+                  {/* Video Upload / URL */}
                   <div>
                     <label className="text-sm text-muted-foreground mb-1.5 block">Video</label>
                     {item.video_url && (
@@ -382,30 +382,42 @@ const AdminDashboard = () => {
                         <video src={item.video_url} className="w-full h-full object-cover" preload="metadata" controls />
                       </div>
                     )}
-                    <div className="flex items-center gap-3">
-                      <label className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${
-                        uploadingIndex === i
-                          ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                          : 'bg-accent text-accent-foreground hover:bg-accent/80'
-                      }`}>
-                        {uploadingIndex === i ? (
-                          <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</>
-                        ) : (
-                          <><Upload className="w-4 h-4" /> Upload Video</>
-                        )}
-                        <input
-                          type="file"
-                          accept="video/mp4,video/webm,video/quicktime"
-                          className="hidden"
-                          disabled={uploadingIndex === i}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleVideoUpload(i, file);
-                            e.target.value = '';
-                          }}
-                        />
-                      </label>
-                      <span className="text-xs text-muted-foreground">Max {MAX_VIDEO_SIZE_MB}MB • MP4, WebM, MOV</span>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-3">
+                        <label className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${
+                          uploadingIndex === i
+                            ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                            : 'bg-accent text-accent-foreground hover:bg-accent/80'
+                        }`}>
+                          {uploadingIndex === i ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</>
+                          ) : (
+                            <><Upload className="w-4 h-4" /> Upload Video</>
+                          )}
+                          <input
+                            type="file"
+                            accept="video/mp4,video/webm,video/quicktime"
+                            className="hidden"
+                            disabled={uploadingIndex === i}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleVideoUpload(i, file);
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                        <span className="text-xs text-muted-foreground">Max {MAX_VIDEO_SIZE_MB}MB • MP4, WebM, MOV</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="flex-1 h-px bg-border" />
+                        <span>OR paste a video URL</span>
+                        <div className="flex-1 h-px bg-border" />
+                      </div>
+                      <InputField
+                        label=""
+                        value={item.video_url || ""}
+                        onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], video_url: v }; setPortfolio(u); }}
+                      />
                     </div>
                   </div>
 
