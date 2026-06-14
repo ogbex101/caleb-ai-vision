@@ -4,7 +4,11 @@ import { Link } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-const PortfolioSection = () => {
+interface PortfolioSectionProps {
+  showCertificate?: boolean;
+}
+
+const PortfolioSection = ({ showCertificate = true }: PortfolioSectionProps) => {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
