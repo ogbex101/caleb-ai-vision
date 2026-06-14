@@ -103,31 +103,32 @@ const PortfolioSection = ({ showCertificate = true }: PortfolioSectionProps) => 
           </div>
         )}
 
-        {/* Certificate Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-16"
-        >
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 text-primary text-sm font-medium tracking-widest uppercase">
-              <Award className="w-4 h-4" />
-              Certification
+        {showCertificate && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-16"
+          >
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 text-primary text-sm font-medium tracking-widest uppercase">
+                <Award className="w-4 h-4" />
+                Certification
+              </div>
+              <h3 className="text-2xl md:text-3xl font-display font-bold mt-2">
+                AI Design <span className="gradient-text">Certificate</span>
+              </h3>
             </div>
-            <h3 className="text-2xl md:text-3xl font-display font-bold mt-2">
-              AI Design <span className="gradient-text">Certificate</span>
-            </h3>
-          </div>
-          <div className="max-w-3xl mx-auto rounded-xl overflow-hidden border border-border hover:border-primary/40 transition-all duration-500">
-            <img
-              src="/images/synthesia-certificate.jpg"
-              alt="AI Design Certificate - Synthesia"
-              className="w-full h-auto"
-              loading="lazy"
-            />
-          </div>
-        </motion.div>
+            <div className="max-w-3xl mx-auto rounded-xl overflow-hidden border border-border hover:border-primary/40 transition-all duration-500">
+              <img
+                src="/images/synthesia-certificate.jpg"
+                alt="AI Design Certificate - Synthesia"
+                className="w-full h-auto"
+                loading="lazy"
+              />
+            </div>
+          </motion.div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
