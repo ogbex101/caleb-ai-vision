@@ -184,7 +184,7 @@ const Faith = () => {
       <FaithHero />
       <FaithAbout />
       <section id="portfolio">
-        <PortfolioSection />
+        <PortfolioSection showCertificate={false} />
       </section>
       <section id="testimonials">
         <TestimonialsSection />
