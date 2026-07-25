@@ -500,8 +500,7 @@ const AdminDashboard = () => {
                     </div>
                   </div>
 
-                    </div>
-                  </div>
+
 
                   <InputField
                     label="Full Video Link (Google Drive, YouTube, Vimeo, etc.)"
