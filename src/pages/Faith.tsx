@@ -39,10 +39,20 @@ const FaithNavbar = () => (
   </nav>
 );
 
+const HERO_VIDEO = "https://videos.pexels.com/video-files/3129957/3129957-hd_1920_1080_30fps.mp4";
+
 const FaithHero = () => (
   <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
     <div className="absolute inset-0">
-      <img src={heroBg} alt="AI Video Editing Workspace" className="w-full h-full object-cover" />
+      <video
+        className="w-full h-full object-cover"
+        src={HERO_VIDEO}
+        poster={heroBg}
+        autoPlay
+        loop
+        muted
+        playsInline
+      />
       <div className="absolute inset-0 bg-background/70" />
       <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-transparent to-background" />
     </div>

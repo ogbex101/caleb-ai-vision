@@ -3,24 +3,28 @@ import { ArrowDown, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
 
+const HERO_VIDEO =
+  "https://videos.pexels.com/video-files/3129957/3129957-hd_1920_1080_30fps.mp4";
+
 const HeroSection = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background Image */}
+      {/* Cinematic video background */}
       <div className="absolute inset-0">
-        <img
-          src={heroBg}
-          alt="AI Video Editing Workspace"
+        <video
           className="w-full h-full object-cover"
+          src={HERO_VIDEO}
+          poster={heroBg}
+          autoPlay
+          loop
+          muted
+          playsInline
         />
         <div className="absolute inset-0 bg-background/70" />
         <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-transparent to-background" />
       </div>
 
-      {/* Grid overlay */}
       <div className="absolute inset-0 bg-grid opacity-30" />
-
-      {/* Glow effects */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse-glow" />
       <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-accent/10 rounded-full blur-[100px] animate-pulse-glow" style={{ animationDelay: "1.5s" }} />
 
@@ -30,7 +34,7 @@ const HeroSection = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <span className="inline-block px-4 py-1.5 mb-6 text-sm font-medium tracking-widest uppercase border border-primary/30 rounded-full text-primary bg-primary/5">
+          <span className="inline-block px-4 py-1.5 mb-6 text-sm font-medium tracking-widest uppercase border border-primary/30 rounded-full text-primary bg-primary/5 backdrop-blur-sm">
             AI Video Editor & Creator
           </span>
         </motion.div>
@@ -62,7 +66,7 @@ const HeroSection = () => {
         >
           <Link
             to="/portfolio"
-            className="group flex items-center gap-2 px-8 py-4 bg-primary text-primary-foreground font-display font-semibold rounded-lg hover:shadow-[var(--shadow-glow)] transition-all duration-300"
+            className="group flex items-center gap-2 px-8 py-4 bg-primary text-primary-foreground font-display font-semibold rounded-lg hover:shadow-[var(--shadow-glow)] hover:scale-105 transition-all duration-300"
           >
             <Play className="w-5 h-5" />
             View My Work
@@ -76,7 +80,6 @@ const HeroSection = () => {
         </motion.div>
       </div>
 
-      {/* Scroll indicator */}
       <motion.div
         className="absolute bottom-8 left-1/2 -translate-x-1/2"
         animate={{ y: [0, 10, 0] }}

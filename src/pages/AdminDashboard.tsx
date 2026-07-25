@@ -26,6 +26,7 @@ const AdminDashboard = () => {
 
   // Upload states
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const [bulkUploading, setBulkUploading] = useState<{ done: number; total: number } | null>(null);
 
   // Settings
   const [newEmail, setNewEmail] = useState("");
@@ -142,9 +143,65 @@ const AdminDashboard = () => {
   const savePortfolioItem = async (item: any) => {
     const { error } = await supabase.from("portfolio_items").update({
       title: item.title, description: item.description, client_name: item.client_name,
-      category: item.category, featured: item.featured, video_url: item.video_url, sort_order: item.sort_order,
+      category: item.category, featured: item.featured, video_url: item.video_url,
+      full_video_url: item.full_video_url, sort_order: item.sort_order,
     }).eq("id", item.id);
     toast({ title: error ? "Failed to save" : `${item.title} updated!`, variant: error ? "destructive" : "default" });
+  };
+
+  // Bulk upload: one portfolio item per file, filename becomes the title
+  const handleBulkUpload = async (files: FileList) => {
+    const arr = Array.from(files);
+    const valid = arr.filter((f) => {
+      if (f.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+        toast({ title: `Skipped ${f.name}: over ${MAX_VIDEO_SIZE_MB}MB`, variant: "destructive" });
+        return false;
+      }
+      return true;
+    });
+    if (valid.length === 0) return;
+
+    setBulkUploading({ done: 0, total: valid.length });
+    const created: any[] = [];
+    let baseOrder = portfolio.length;
+
+    for (let i = 0; i < valid.length; i++) {
+      const file = valid[i];
+      const title = file.name.replace(/\.[^/.]+$/, "");
+
+      const { data: newRow, error: insErr } = await supabase
+        .from("portfolio_items")
+        .insert({ title, description: "", client_name: "", category: "", sort_order: ++baseOrder })
+        .select()
+        .single();
+      if (insErr || !newRow) {
+        toast({ title: `Failed to create row for ${file.name}`, variant: "destructive" });
+        setBulkUploading({ done: i + 1, total: valid.length });
+        continue;
+      }
+
+      const ext = file.name.split(".").pop();
+      const filePath = `${newRow.id}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("portfolio-videos")
+        .upload(filePath, file, { cacheControl: "3600", upsert: true, contentType: file.type });
+
+      if (upErr) {
+        toast({ title: `Upload failed for ${file.name}: ${upErr.message}`, variant: "destructive" });
+        setBulkUploading({ done: i + 1, total: valid.length });
+        continue;
+      }
+
+      const { data: urlData } = supabase.storage.from("portfolio-videos").getPublicUrl(filePath);
+      const videoUrl = urlData.publicUrl;
+      await supabase.from("portfolio_items").update({ video_url: videoUrl }).eq("id", newRow.id);
+      created.push({ ...newRow, video_url: videoUrl });
+      setBulkUploading({ done: i + 1, total: valid.length });
+    }
+
+    setPortfolio((prev) => [...prev, ...created]);
+    setBulkUploading(null);
+    toast({ title: `Uploaded ${created.length} of ${valid.length} videos` });
   };
 
   const toggleFeatured = async (index: number) => {
@@ -342,9 +399,31 @@ const AdminDashboard = () => {
                     Star items to show them on the landing page. All items appear on the portfolio page.
                   </p>
                 </div>
-                <button onClick={addPortfolioItem} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm rounded-lg font-medium">
-                  <Plus className="w-4 h-4" /> Add Project
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg font-medium cursor-pointer transition-all ${
+                    bulkUploading ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-accent text-accent-foreground hover:bg-accent/80'
+                  }`}>
+                    {bulkUploading ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Uploading {bulkUploading.done}/{bulkUploading.total}</>
+                    ) : (
+                      <><Upload className="w-4 h-4" /> Bulk Upload</>
+                    )}
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm,video/quicktime"
+                      multiple
+                      className="hidden"
+                      disabled={!!bulkUploading}
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) handleBulkUpload(e.target.files);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                  <button onClick={addPortfolioItem} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm rounded-lg font-medium">
+                    <Plus className="w-4 h-4" /> Add Project
+                  </button>
+                </div>
               </div>
               {portfolio.map((item, i) => (
                 <div key={item.id} className={`p-6 rounded-xl bg-card border transition-colors space-y-4 ${item.featured ? 'border-primary/60' : 'border-border'}`}>
@@ -420,6 +499,15 @@ const AdminDashboard = () => {
                       />
                     </div>
                   </div>
+
+
+
+                  <InputField
+                    label="Full Video Link (Google Drive, YouTube, Vimeo, etc.)"
+                    value={item.full_video_url || ""}
+                    placeholder="https://drive.google.com/file/d/..."
+                    onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], full_video_url: v }; setPortfolio(u); }}
+                  />
 
                   <div className="flex gap-2">
                     <SaveButton onClick={() => savePortfolioItem(portfolio[i])} />
