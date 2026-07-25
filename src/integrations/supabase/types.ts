@@ -96,6 +96,7 @@ export type Database = {
           created_at: string
           description: string | null
           featured: boolean
+          full_video_url: string | null
           id: string
           sort_order: number
           thumbnail_url: string | null
@@ -108,6 +109,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           featured?: boolean
+          full_video_url?: string | null
           id?: string
           sort_order?: number
           thumbnail_url?: string | null
@@ -120,6 +122,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           featured?: boolean
+          full_video_url?: string | null
           id?: string
           sort_order?: number
           thumbnail_url?: string | null
