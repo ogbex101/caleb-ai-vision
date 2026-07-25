@@ -26,6 +26,7 @@ const AdminDashboard = () => {
 
   // Upload states
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const [bulkUploading, setBulkUploading] = useState<{ done: number; total: number } | null>(null);
 
   // Settings
   const [newEmail, setNewEmail] = useState("");
@@ -142,9 +143,65 @@ const AdminDashboard = () => {
   const savePortfolioItem = async (item: any) => {
     const { error } = await supabase.from("portfolio_items").update({
       title: item.title, description: item.description, client_name: item.client_name,
-      category: item.category, featured: item.featured, video_url: item.video_url, sort_order: item.sort_order,
+      category: item.category, featured: item.featured, video_url: item.video_url,
+      full_video_url: item.full_video_url, sort_order: item.sort_order,
     }).eq("id", item.id);
     toast({ title: error ? "Failed to save" : `${item.title} updated!`, variant: error ? "destructive" : "default" });
+  };
+
+  // Bulk upload: one portfolio item per file, filename becomes the title
+  const handleBulkUpload = async (files: FileList) => {
+    const arr = Array.from(files);
+    const valid = arr.filter((f) => {
+      if (f.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+        toast({ title: `Skipped ${f.name}: over ${MAX_VIDEO_SIZE_MB}MB`, variant: "destructive" });
+        return false;
+      }
+      return true;
+    });
+    if (valid.length === 0) return;
+
+    setBulkUploading({ done: 0, total: valid.length });
+    const created: any[] = [];
+    let baseOrder = portfolio.length;
+
+    for (let i = 0; i < valid.length; i++) {
+      const file = valid[i];
+      const title = file.name.replace(/\.[^/.]+$/, "");
+
+      const { data: newRow, error: insErr } = await supabase
+        .from("portfolio_items")
+        .insert({ title, description: "", client_name: "", category: "", sort_order: ++baseOrder })
+        .select()
+        .single();
+      if (insErr || !newRow) {
+        toast({ title: `Failed to create row for ${file.name}`, variant: "destructive" });
+        setBulkUploading({ done: i + 1, total: valid.length });
+        continue;
+      }
+
+      const ext = file.name.split(".").pop();
+      const filePath = `${newRow.id}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("portfolio-videos")
+        .upload(filePath, file, { cacheControl: "3600", upsert: true, contentType: file.type });
+
+      if (upErr) {
+        toast({ title: `Upload failed for ${file.name}: ${upErr.message}`, variant: "destructive" });
+        setBulkUploading({ done: i + 1, total: valid.length });
+        continue;
+      }
+
+      const { data: urlData } = supabase.storage.from("portfolio-videos").getPublicUrl(filePath);
+      const videoUrl = urlData.publicUrl;
+      await supabase.from("portfolio_items").update({ video_url: videoUrl }).eq("id", newRow.id);
+      created.push({ ...newRow, video_url: videoUrl });
+      setBulkUploading({ done: i + 1, total: valid.length });
+    }
+
+    setPortfolio((prev) => [...prev, ...created]);
+    setBulkUploading(null);
+    toast({ title: `Uploaded ${created.length} of ${valid.length} videos` });
   };
 
   const toggleFeatured = async (index: number) => {
