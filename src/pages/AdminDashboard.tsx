@@ -399,9 +399,31 @@ const AdminDashboard = () => {
                     Star items to show them on the landing page. All items appear on the portfolio page.
                   </p>
                 </div>
-                <button onClick={addPortfolioItem} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm rounded-lg font-medium">
-                  <Plus className="w-4 h-4" /> Add Project
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg font-medium cursor-pointer transition-all ${
+                    bulkUploading ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-accent text-accent-foreground hover:bg-accent/80'
+                  }`}>
+                    {bulkUploading ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Uploading {bulkUploading.done}/{bulkUploading.total}</>
+                    ) : (
+                      <><Upload className="w-4 h-4" /> Bulk Upload</>
+                    )}
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm,video/quicktime"
+                      multiple
+                      className="hidden"
+                      disabled={!!bulkUploading}
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) handleBulkUpload(e.target.files);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                  <button onClick={addPortfolioItem} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm rounded-lg font-medium">
+                    <Plus className="w-4 h-4" /> Add Project
+                  </button>
+                </div>
               </div>
               {portfolio.map((item, i) => (
                 <div key={item.id} className={`p-6 rounded-xl bg-card border transition-colors space-y-4 ${item.featured ? 'border-primary/60' : 'border-border'}`}>
@@ -477,6 +499,16 @@ const AdminDashboard = () => {
                       />
                     </div>
                   </div>
+
+                    </div>
+                  </div>
+
+                  <InputField
+                    label="Full Video Link (Google Drive, YouTube, Vimeo, etc.)"
+                    value={item.full_video_url || ""}
+                    placeholder="https://drive.google.com/file/d/..."
+                    onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], full_video_url: v }; setPortfolio(u); }}
+                  />
 
                   <div className="flex gap-2">
                     <SaveButton onClick={() => savePortfolioItem(portfolio[i])} />
