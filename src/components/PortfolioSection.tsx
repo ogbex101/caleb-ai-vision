@@ -27,20 +27,26 @@ const PortfolioSection = ({ showCertificate = true }: PortfolioSectionProps) => 
   }, []);
 
   return (
-    <section className="py-24 px-6 relative">
-      <div className="max-w-5xl mx-auto">
+    <section className="py-32 px-6 relative overflow-hidden">
+      <div className="absolute inset-0 bg-grid opacity-[0.07]" />
+      <div className="absolute top-20 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[140px]" />
+      <div className="absolute bottom-20 left-0 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[140px]" />
+
+      <div className="max-w-6xl mx-auto relative">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-14"
+          className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-16"
         >
-          <span className="text-primary text-sm font-medium tracking-widest uppercase">Portfolio</span>
-          <h2 className="text-4xl md:text-5xl font-display font-bold mt-3">
-            Featured <span className="gradient-text">Work</span>
-          </h2>
-          <p className="text-muted-foreground mt-4 max-w-lg mx-auto">
-            A rotating showcase of AI-powered video projects. Autoplay advances every 10 seconds.
+          <div>
+            <span className="text-primary text-xs font-medium tracking-[0.3em] uppercase">— Portfolio</span>
+            <h2 className="text-4xl md:text-6xl font-display font-bold mt-4 tracking-tight">
+              Featured <span className="gradient-text">Work</span>
+            </h2>
+          </div>
+          <p className="text-muted-foreground max-w-sm md:text-right leading-relaxed">
+            An immersive showcase of AI-powered video projects. Each frame auto-advances every 10 seconds — or navigate at your own pace.
           </p>
         </motion.div>
 
@@ -50,10 +56,10 @@ const PortfolioSection = ({ showCertificate = true }: PortfolioSectionProps) => 
           <div className="text-center text-muted-foreground py-12">No featured projects yet.</div>
         ) : (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           >
             <PortfolioCarousel items={projects} autoAdvanceMs={10000} />
           </motion.div>
