@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowDown, Play } from "lucide-react";
+import { ArrowDown, Play, Sparkles, Users, Eye, Film } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
 import PortfolioSection from "@/components/PortfolioSection";
@@ -40,11 +40,15 @@ const FaithNavbar = () => (
 );
 
 const HERO_VIDEO = "https://videos.pexels.com/video-files/3129957/3129957-hd_1920_1080_30fps.mp4";
+const title = ["Faith", "K"];
 
 const FaithHero = () => (
   <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
     <div className="absolute inset-0">
-      <video
+      <motion.video
+        initial={{ scale: 1.15, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 2.2, ease: [0.22, 1, 0.36, 1] }}
         className="w-full h-full object-cover"
         src={HERO_VIDEO}
         poster={heroBg}
@@ -53,118 +57,122 @@ const FaithHero = () => (
         muted
         playsInline
       />
-      <div className="absolute inset-0 bg-background/70" />
-      <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-transparent to-background" />
+      <div className="absolute inset-0 bg-background/60" />
+      <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background" />
+      <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 30%, hsl(var(--background) / 0.85) 90%)" }} />
+      <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent 0, transparent 2px, hsl(var(--foreground)) 2px, hsl(var(--foreground)) 3px)" }} />
     </div>
-    <div className="absolute inset-0 bg-grid opacity-30" />
-    <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse-glow" />
-    <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-accent/10 rounded-full blur-[100px] animate-pulse-glow" style={{ animationDelay: "1.5s" }} />
+    <div className="absolute inset-0 bg-grid opacity-20" />
+    <motion.div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/15 rounded-full blur-[120px]" animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }} transition={{ duration: 6, repeat: Infinity }} />
+    <motion.div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-accent/15 rounded-full blur-[100px]" animate={{ scale: [1.2, 1, 1.2], opacity: [0.5, 0.3, 0.5] }} transition={{ duration: 8, repeat: Infinity }} />
 
     <div className="relative z-10 text-center px-6 max-w-5xl mx-auto">
-      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-        <span className="inline-block px-4 py-1.5 mb-6 text-sm font-medium tracking-widest uppercase border border-primary/30 rounded-full text-primary bg-primary/5">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }}>
+        <span className="inline-flex items-center gap-2 px-4 py-1.5 mb-8 text-xs font-medium tracking-[0.25em] uppercase border border-primary/40 rounded-full text-primary bg-primary/5 backdrop-blur-md">
+          <Sparkles className="w-3 h-3" />
           AI Video Editor & Creator
         </span>
       </motion.div>
-      <motion.h1
-        className="text-5xl md:text-7xl lg:text-8xl font-display font-bold leading-tight mb-6"
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.2 }}
-      >
-        <span className="text-foreground">Faith</span> <span className="gradient-text">K</span>
-      </motion.h1>
+
+      <h1 className="text-6xl md:text-8xl lg:text-9xl font-display font-bold leading-[0.95] mb-8 tracking-tight">
+        {title.map((word, wi) => (
+          <span key={word} className="inline-block overflow-hidden mr-4 last:mr-0">
+            <motion.span
+              className={`inline-block ${wi === 1 ? "gradient-text text-glow" : "text-foreground"}`}
+              initial={{ y: "110%", opacity: 0 }}
+              animate={{ y: "0%", opacity: 1 }}
+              transition={{ duration: 1, delay: 0.6 + wi * 0.15, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {word}
+            </motion.span>
+          </span>
+        ))}
+      </h1>
+
       <motion.p
-        className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.4 }}
+        className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed"
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 1.1 }}
       >
         Transforming raw footage into cinematic masterpieces with the power of artificial intelligence. Where creativity meets cutting-edge technology.
       </motion.p>
-      <motion.div
-        className="flex flex-col sm:flex-row gap-4 justify-center items-center"
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.6 }}
-      >
-        <Link
-          to="/portfolio"
-          className="group flex items-center gap-2 px-8 py-4 bg-primary text-primary-foreground font-display font-semibold rounded-lg hover:shadow-[var(--shadow-glow)] transition-all duration-300"
-        >
-          <Play className="w-5 h-5" />
-          View My Work
+
+      <motion.div className="flex flex-col sm:flex-row gap-4 justify-center items-center" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 1.3 }}>
+        <Link to="/portfolio" className="group relative flex items-center gap-2 px-8 py-4 bg-primary text-primary-foreground font-display font-semibold rounded-lg hover:shadow-[var(--shadow-glow)] hover:scale-105 transition-all duration-300 overflow-hidden">
+          <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+          <Play className="w-5 h-5 relative" />
+          <span className="relative">View My Work</span>
         </Link>
-        <a
-          href="#about"
-          className="flex items-center gap-2 px-8 py-4 border border-border text-foreground font-display font-medium rounded-lg hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
-        >
+        <a href="#about" className="flex items-center gap-2 px-8 py-4 border border-border text-foreground font-display font-medium rounded-lg hover:border-primary/50 hover:bg-primary/5 backdrop-blur-md transition-all duration-300">
           Learn More
         </a>
       </motion.div>
     </div>
 
-    <motion.div
-      className="absolute bottom-8 left-1/2 -translate-x-1/2"
-      animate={{ y: [0, 10, 0] }}
-      transition={{ duration: 2, repeat: Infinity }}
-    >
-      <ArrowDown className="w-5 h-5 text-muted-foreground" />
+    <motion.div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }}>
+      <span className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground">Scroll</span>
+      <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 2, repeat: Infinity }}>
+        <ArrowDown className="w-4 h-4 text-primary" />
+      </motion.div>
     </motion.div>
   </section>
 );
 
+const faithStats = [
+  { icon: Users, value: "200+", label: "Clients Worldwide", accent: false },
+  { icon: Eye, value: "50M+", label: "Total Views", accent: true },
+  { icon: Film, value: "500+", label: "Projects Delivered", accent: false },
+  { icon: Sparkles, value: "10+", label: "Years Crafting", accent: true },
+];
+
 const FaithAbout = () => (
-  <section id="about" className="py-24 px-6 relative">
+  <section id="about" className="py-32 px-6 relative overflow-hidden">
     <div className="absolute inset-0 bg-grid opacity-10" />
-    <div className="max-w-5xl mx-auto relative">
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="text-center mb-16"
-      >
-        <span className="text-primary text-sm font-medium tracking-widest uppercase">About</span>
-        <h2 className="text-4xl md:text-5xl font-display font-bold mt-3 gradient-text">
+    <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -translate-y-1/2" />
+    <div className="absolute top-1/2 right-0 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[120px] -translate-y-1/2" />
+
+    <div className="max-w-6xl mx-auto relative">
+      <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="text-center mb-20">
+        <span className="text-primary text-xs font-medium tracking-[0.3em] uppercase">— About —</span>
+        <h2 className="text-4xl md:text-6xl font-display font-bold mt-4 gradient-text">
           The Story Behind the Lens
         </h2>
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        className="grid md:grid-cols-2 gap-12 items-center"
-      >
-        <div className="space-y-6 text-muted-foreground leading-relaxed">
+      <div className="grid lg:grid-cols-5 gap-12 items-center">
+        <motion.div initial={{ opacity: 0, x: -40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }} className="lg:col-span-3 space-y-6 text-muted-foreground leading-relaxed text-[15px] md:text-base">
           <p>
             From the bustling streets of Lagos to the cutting edge of AI-powered filmmaking, Faith K has spent the last decade redefining what's possible in video production. What started as a teenage passion for storytelling through a borrowed camera evolved into a relentless pursuit of innovation.
           </p>
           <p>
-            After years of mastering traditional editing techniques, Faith recognized the transformative potential of AI early on—becoming one of the first editors in the industry to seamlessly blend machine learning with human creativity. Her philosophy is simple: <span className="text-primary font-medium">AI doesn't replace the artist; it amplifies the vision.</span>
+            After years of mastering traditional editing techniques, Faith recognized the transformative potential of AI early on—becoming one of the first editors to seamlessly blend machine learning with human creativity. Her philosophy is simple: <span className="text-primary font-medium">AI doesn't replace the artist; it amplifies the vision.</span>
           </p>
           <p>
             Today, Faith has worked with over 200 clients worldwide—from indie filmmakers to Fortune 500 brands—delivering content that doesn't just look stunning, but tells stories that resonate on a deeply human level.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="relative">
-          <div className="aspect-square rounded-2xl bg-card border border-border overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-accent/10" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center space-y-4">
-                <div className="text-6xl font-display font-bold gradient-text">200+</div>
-                <div className="text-muted-foreground">Clients Worldwide</div>
-                <div className="text-5xl font-display font-bold gradient-text-accent mt-6">50M+</div>
-                <div className="text-muted-foreground">Total Views</div>
-              </div>
-            </div>
-          </div>
-          <div className="absolute -inset-1 rounded-2xl bg-primary/10 blur-xl -z-10" />
-        </div>
-      </motion.div>
+        <motion.div initial={{ opacity: 0, x: 40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.15 }} className="lg:col-span-2 grid grid-cols-2 gap-4">
+          {faithStats.map((s, i) => {
+            const Icon = s.icon;
+            return (
+              <motion.div
+                key={s.label}
+                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.1 * i }}
+                whileHover={{ y: -6, rotateX: 4, rotateY: -4 }}
+                style={{ transformStyle: "preserve-3d" }}
+                className="group relative p-5 rounded-2xl border border-border bg-card/60 backdrop-blur-sm hover:border-primary/50 transition-colors overflow-hidden"
+              >
+                <div className={`absolute -top-8 -right-8 w-24 h-24 rounded-full blur-2xl opacity-40 group-hover:opacity-70 transition-opacity ${s.accent ? "bg-accent/40" : "bg-primary/40"}`} />
+                <Icon className={`w-5 h-5 mb-3 ${s.accent ? "text-accent" : "text-primary"}`} />
+                <div className={`text-3xl md:text-4xl font-display font-bold ${s.accent ? "gradient-text-accent" : "gradient-text"}`}>
+                  {s.value}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1 tracking-wide">{s.label}</div>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      </div>
     </div>
   </section>
 );
