@@ -1,5 +1,5 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Play, Pause, ExternalLink } from "lucide-react";
+import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
+import { ChevronLeft, ChevronRight, Play, Pause, ExternalLink, Film } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface PortfolioItem {
@@ -20,15 +20,24 @@ interface Props {
 const PortfolioCarousel = ({ items, autoAdvanceMs = 10000 }: Props) => {
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [direction, setDirection] = useState(1);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const timerRef = useRef<number | null>(null);
 
-  const total = items.length;
-  const goTo = (i: number) => setIndex(((i % total) + total) % total);
-  const next = () => goTo(index + 1);
-  const prev = () => goTo(index - 1);
+  // 3D tilt tracking
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const rotX = useTransform(my, [-0.5, 0.5], [8, -8]);
+  const rotY = useTransform(mx, [-0.5, 0.5], [-12, 12]);
 
-  // Auto-advance timer (10s max, or when the video ends first)
+  const total = items.length;
+  const goTo = (i: number, dir = 1) => {
+    setDirection(dir);
+    setIndex(((i % total) + total) % total);
+  };
+  const next = () => goTo(index + 1, 1);
+  const prev = () => goTo(index - 1, -1);
+
   useEffect(() => {
     if (!isPlaying || total <= 1) return;
     if (timerRef.current) window.clearTimeout(timerRef.current);
@@ -36,9 +45,9 @@ const PortfolioCarousel = ({ items, autoAdvanceMs = 10000 }: Props) => {
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, isPlaying, total, autoAdvanceMs]);
 
-  // Restart video whenever slide changes
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -47,32 +56,90 @@ const PortfolioCarousel = ({ items, autoAdvanceMs = 10000 }: Props) => {
     else v.pause();
   }, [index, isPlaying]);
 
-  // Keyboard nav
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") next();
       else if (e.key === "ArrowLeft") prev();
-      else if (e.key === " ") { e.preventDefault(); setIsPlaying((p) => !p); }
+      else if (e.key === " ") {
+        e.preventDefault();
+        setIsPlaying((p) => !p);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
 
   if (total === 0) return null;
   const current = items[index];
+  const prevItem = items[(index - 1 + total) % total];
+  const nextItem = items[(index + 1) % total];
+
+  const handleMouse = (e: React.MouseEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    mx.set((e.clientX - r.left) / r.width - 0.5);
+    my.set((e.clientY - r.top) / r.height - 0.5);
+  };
+  const resetMouse = () => {
+    mx.set(0);
+    my.set(0);
+  };
+
+  const variants = {
+    enter: (dir: number) => ({
+      opacity: 0,
+      rotateY: dir * 35,
+      x: dir * 120,
+      scale: 0.9,
+    }),
+    center: { opacity: 1, rotateY: 0, x: 0, scale: 1 },
+    exit: (dir: number) => ({
+      opacity: 0,
+      rotateY: dir * -35,
+      x: dir * -120,
+      scale: 0.9,
+    }),
+  };
 
   return (
-    <div className="relative">
+    <div className="relative" style={{ perspective: "2000px" }}>
+      {/* Side peek previews (desktop) */}
+      <div className="hidden lg:block pointer-events-none absolute inset-y-0 -left-16 w-40 opacity-40 blur-[2px]" style={{ transform: "rotateY(35deg) translateZ(-100px)", transformOrigin: "right center" }}>
+        <div className="h-full rounded-2xl overflow-hidden border border-border/40 bg-card">
+          {prevItem.video_url && (
+            <video src={prevItem.video_url} muted loop playsInline autoPlay className="w-full h-full object-cover" />
+          )}
+        </div>
+      </div>
+      <div className="hidden lg:block pointer-events-none absolute inset-y-0 -right-16 w-40 opacity-40 blur-[2px]" style={{ transform: "rotateY(-35deg) translateZ(-100px)", transformOrigin: "left center" }}>
+        <div className="h-full rounded-2xl overflow-hidden border border-border/40 bg-card">
+          {nextItem.video_url && (
+            <video src={nextItem.video_url} muted loop playsInline autoPlay className="w-full h-full object-cover" />
+          )}
+        </div>
+      </div>
+
+      {/* Ambient glow */}
+      <div aria-hidden className="absolute -inset-8 rounded-[2rem] bg-gradient-to-tr from-primary/20 via-accent/10 to-transparent blur-3xl -z-10" />
+
       {/* Stage */}
-      <div className="relative aspect-video rounded-2xl overflow-hidden border border-border bg-card shadow-[var(--shadow-glow-lg)]">
-        <AnimatePresence mode="wait">
+      <motion.div
+        onMouseMove={handleMouse}
+        onMouseLeave={resetMouse}
+        style={{ rotateX: rotX, rotateY: rotY, transformStyle: "preserve-3d" }}
+        className="relative aspect-video rounded-2xl overflow-hidden border border-primary/20 bg-card shadow-[var(--shadow-glow-lg)] will-change-transform"
+      >
+        <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={current.id}
-            initial={{ opacity: 0, scale: 1.02 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="absolute inset-0"
+            style={{ transformStyle: "preserve-3d" }}
           >
             {current.video_url ? (
               <video
@@ -86,31 +153,43 @@ const PortfolioCarousel = ({ items, autoAdvanceMs = 10000 }: Props) => {
               />
             ) : (
               <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
-                No video
+                <Film className="w-8 h-8" />
               </div>
             )}
 
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent pointer-events-none" />
+            {/* Cinematic vignette + gradient */}
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at center, transparent 40%, hsl(var(--background) / 0.6) 100%)" }} />
 
             {/* Caption */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="absolute bottom-0 left-0 right-0 p-6 md:p-8"
+              transition={{ delay: 0.25, duration: 0.6 }}
+              className="absolute bottom-0 left-0 right-0 p-6 md:p-10"
+              style={{ transform: "translateZ(60px)" }}
             >
-              {current.category && (
-                <span className="text-xs font-medium text-primary tracking-widest uppercase">
-                  {current.category}
+              <div className="flex items-center gap-3 mb-3">
+                {current.category && (
+                  <span className="text-[10px] font-medium text-primary tracking-[0.25em] uppercase px-3 py-1 rounded-full border border-primary/30 bg-primary/10 backdrop-blur">
+                    {current.category}
+                  </span>
+                )}
+                <span className="text-[10px] font-mono text-muted-foreground tracking-widest">
+                  {String(index + 1).padStart(2, "0")} — {String(total).padStart(2, "0")}
                 </span>
-              )}
-              <h3 className="font-display font-bold text-2xl md:text-4xl text-foreground mt-2">
+              </div>
+              <h3 className="font-display font-bold text-3xl md:text-5xl lg:text-6xl text-foreground leading-[1.05] tracking-tight max-w-3xl">
                 {current.title}
               </h3>
               {current.client_name && (
-                <p className="text-sm md:text-base text-muted-foreground mt-1">
-                  {current.client_name}
+                <p className="text-sm md:text-base text-muted-foreground mt-3 font-medium">
+                  <span className="text-primary/70">◆</span> {current.client_name}
+                </p>
+              )}
+              {current.description && (
+                <p className="text-sm text-muted-foreground/80 mt-3 max-w-xl line-clamp-2">
+                  {current.description}
                 </p>
               )}
               {current.full_video_url && (
@@ -118,7 +197,7 @@ const PortfolioCarousel = ({ items, autoAdvanceMs = 10000 }: Props) => {
                   href={current.full_video_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-display font-semibold rounded-lg hover:shadow-[var(--shadow-glow)] transition-all"
+                  className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-display font-semibold rounded-lg hover:shadow-[var(--shadow-glow)] hover:scale-105 transition-all"
                 >
                   <ExternalLink className="w-4 h-4" /> Watch Full Video
                 </a>
@@ -127,72 +206,81 @@ const PortfolioCarousel = ({ items, autoAdvanceMs = 10000 }: Props) => {
           </motion.div>
         </AnimatePresence>
 
-        {/* Prev / Next */}
+        {/* Controls */}
         {total > 1 && (
           <>
             <button
               onClick={prev}
               aria-label="Previous"
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-background/70 backdrop-blur-md border border-border hover:border-primary/60 hover:bg-background/90 flex items-center justify-center transition-all"
+              className="group absolute left-3 md:left-5 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-background/60 backdrop-blur-md border border-border hover:border-primary hover:bg-primary/10 flex items-center justify-center transition-all hover:scale-110"
+              style={{ transform: "translateZ(80px) translateY(-50%)" }}
             >
-              <ChevronLeft className="w-5 h-5 text-foreground" />
+              <ChevronLeft className="w-5 h-5 text-foreground group-hover:text-primary transition-colors" />
             </button>
             <button
               onClick={next}
               aria-label="Next"
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-background/70 backdrop-blur-md border border-border hover:border-primary/60 hover:bg-background/90 flex items-center justify-center transition-all"
+              className="group absolute right-3 md:right-5 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-background/60 backdrop-blur-md border border-border hover:border-primary hover:bg-primary/10 flex items-center justify-center transition-all hover:scale-110"
+              style={{ transform: "translateZ(80px) translateY(-50%)" }}
             >
-              <ChevronRight className="w-5 h-5 text-foreground" />
+              <ChevronRight className="w-5 h-5 text-foreground group-hover:text-primary transition-colors" />
             </button>
           </>
         )}
 
-        {/* Play / Pause */}
         <button
           onClick={() => setIsPlaying((p) => !p)}
           aria-label={isPlaying ? "Pause slideshow" : "Play slideshow"}
-          className="absolute top-3 right-3 w-10 h-10 rounded-full bg-background/70 backdrop-blur-md border border-border hover:border-primary/60 flex items-center justify-center transition-all"
+          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-background/60 backdrop-blur-md border border-border hover:border-primary flex items-center justify-center transition-all"
         >
-          {isPlaying ? (
-            <Pause className="w-4 h-4 text-foreground" />
-          ) : (
-            <Play className="w-4 h-4 text-foreground ml-0.5" />
-          )}
+          {isPlaying ? <Pause className="w-4 h-4 text-foreground" /> : <Play className="w-4 h-4 text-foreground ml-0.5" />}
         </button>
 
-        {/* Progress bar */}
         {total > 1 && isPlaying && (
-          <div className="absolute top-0 left-0 right-0 h-0.5 bg-border/40">
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-border/30 overflow-hidden">
             <motion.div
               key={`${index}-${isPlaying}`}
               initial={{ width: "0%" }}
               animate={{ width: "100%" }}
               transition={{ duration: autoAdvanceMs / 1000, ease: "linear" }}
-              className="h-full bg-primary"
+              className="h-full bg-gradient-to-r from-primary via-accent to-primary"
             />
           </div>
         )}
-      </div>
+      </motion.div>
 
-      {/* Thumbnails / dots */}
+      {/* Thumbnail rail */}
       {total > 1 && (
-        <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
-          {items.map((it, i) => (
-            <button
-              key={it.id}
-              onClick={() => goTo(i)}
-              aria-label={`Go to slide ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all ${
-                i === index ? "w-8 bg-primary" : "w-4 bg-border hover:bg-muted-foreground/60"
-              }`}
-            />
-          ))}
+        <div className="mt-8 flex items-center justify-center gap-3 flex-wrap px-4">
+          {items.map((it, i) => {
+            const active = i === index;
+            return (
+              <motion.button
+                key={it.id}
+                onClick={() => goTo(i, i > index ? 1 : -1)}
+                whileHover={{ y: -4, scale: 1.05 }}
+                aria-label={`Go to ${it.title}`}
+                className={`relative overflow-hidden rounded-lg border transition-all ${
+                  active ? "border-primary shadow-[var(--shadow-glow)] w-28 h-16" : "border-border/60 opacity-60 hover:opacity-100 w-20 h-12"
+                }`}
+              >
+                {it.video_url ? (
+                  <video src={it.video_url} muted loop playsInline autoPlay className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-muted" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                {active && (
+                  <motion.div
+                    layoutId="thumb-active"
+                    className="absolute inset-0 ring-2 ring-primary rounded-lg pointer-events-none"
+                  />
+                )}
+              </motion.button>
+            );
+          })}
         </div>
       )}
-
-      <div className="mt-3 text-center text-xs text-muted-foreground tracking-widest">
-        {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
-      </div>
     </div>
   );
 };
