@@ -40,13 +40,13 @@ const PortfolioSection = ({ showCertificate = true }: PortfolioSectionProps) => 
           className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-16"
         >
           <div>
-            <span className="text-primary text-xs font-medium tracking-[0.3em] uppercase">— Portfolio</span>
+            <span className="text-primary text-xs font-medium tracking-[0.3em] uppercase">— Selected Work</span>
             <h2 className="text-4xl md:text-6xl font-display font-bold mt-4 tracking-tight">
-              Featured <span className="gradient-text">Work</span>
+              Frames That <span className="gradient-text">Move People</span>
             </h2>
           </div>
           <p className="text-muted-foreground max-w-sm md:text-right leading-relaxed">
-            An immersive showcase of AI-powered video projects. Each frame auto-advances every 10 seconds — or navigate at your own pace.
+            A rotating reel of AI-assisted films, brand spots and story-driven edits. Each piece plays for ten seconds — hit the arrows to explore at your own pace, and unmute to hear the sound design.
           </p>
         </motion.div>
 

@@ -4,20 +4,20 @@ import { Link } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
 import PortfolioSection from "@/components/PortfolioSection";
 import TestimonialsSection from "@/components/TestimonialsSection";
+import FAQSection from "@/components/FAQSection";
 import ContactSection from "@/components/ContactSection";
-import Footer from "@/components/Footer";
+import BrandLogo from "@/components/BrandLogo";
 
 const FaithNavbar = () => (
   <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
     <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-      <Link to="/faith" className="font-display font-bold text-xl gradient-text">
-        FK<span className="text-primary">.</span>
-      </Link>
+      <BrandLogo variant="faith" to="/faith" />
       <div className="hidden md:flex items-center gap-8">
         {[
           { label: "About", href: "#about" },
           { label: "Work", href: "#portfolio" },
           { label: "Testimonials", href: "#testimonials" },
+          { label: "FAQ", href: "#faq" },
           { label: "Contact", href: "#contact" },
         ].map((link) => (
           <a
@@ -180,9 +180,7 @@ const FaithAbout = () => (
 const FaithFooter = () => (
   <footer className="py-12 px-6 border-t border-border bg-card/30">
     <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-      <Link to="/faith" className="font-display font-bold text-xl gradient-text">
-        FK<span className="text-primary">.</span>
-      </Link>
+      <BrandLogo variant="faith" to="/faith" />
       <p className="text-sm text-muted-foreground">
         © {new Date().getFullYear()} Faith K. Crafting the future of video.
       </p>
@@ -207,6 +205,7 @@ const Faith = () => {
       <section id="testimonials">
         <TestimonialsSection />
       </section>
+      <FAQSection name="Faith" />
       <section id="contact">
         <ContactSection />
       </section>
