@@ -1,17 +1,17 @@
 import { Link } from "react-router-dom";
+import BrandLogo from "./BrandLogo";
 
 const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link to="/" className="font-display font-bold text-xl gradient-text">
-          CP<span className="text-primary">.</span>
-        </Link>
+        <BrandLogo variant="caleb" to="/" />
         <div className="hidden md:flex items-center gap-8">
           {[
             { label: "About", href: "#about" },
             { label: "Work", href: "#portfolio" },
             { label: "Testimonials", href: "#testimonials" },
+            { label: "FAQ", href: "#faq" },
             { label: "Contact", href: "#contact" },
           ].map((link) => (
             <a
