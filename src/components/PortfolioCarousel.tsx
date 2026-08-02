@@ -1,5 +1,5 @@
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
-import { ChevronLeft, ChevronRight, Play, Pause, ExternalLink, Film } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Pause, ExternalLink, Film, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface PortfolioItem {
@@ -20,6 +20,7 @@ interface Props {
 const PortfolioCarousel = ({ items, autoAdvanceMs = 10000 }: Props) => {
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(true);
   const [direction, setDirection] = useState(1);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -52,9 +53,10 @@ const PortfolioCarousel = ({ items, autoAdvanceMs = 10000 }: Props) => {
     const v = videoRef.current;
     if (!v) return;
     v.currentTime = 0;
+    v.muted = isMuted;
     if (isPlaying) v.play().catch(() => {});
     else v.pause();
-  }, [index, isPlaying]);
+  }, [index, isPlaying, isMuted]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -147,7 +149,7 @@ const PortfolioCarousel = ({ items, autoAdvanceMs = 10000 }: Props) => {
                 src={current.video_url}
                 className="w-full h-full object-cover"
                 autoPlay={isPlaying}
-                muted
+                muted={isMuted}
                 playsInline
                 onEnded={next}
               />
@@ -234,6 +236,19 @@ const PortfolioCarousel = ({ items, autoAdvanceMs = 10000 }: Props) => {
           className="absolute top-4 right-4 w-10 h-10 rounded-full bg-background/60 backdrop-blur-md border border-border hover:border-primary flex items-center justify-center transition-all"
         >
           {isPlaying ? <Pause className="w-4 h-4 text-foreground" /> : <Play className="w-4 h-4 text-foreground ml-0.5" />}
+        </button>
+
+        <button
+          onClick={() => setIsMuted((m) => !m)}
+          aria-label={isMuted ? "Unmute video" : "Mute video"}
+          title={isMuted ? "Unmute" : "Mute"}
+          className={`absolute top-4 right-16 w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center transition-all hover:scale-110 ${
+            isMuted
+              ? "bg-background/60 border-border hover:border-primary"
+              : "bg-primary/20 border-primary shadow-[var(--shadow-glow)]"
+          }`}
+        >
+          {isMuted ? <VolumeX className="w-4 h-4 text-foreground" /> : <Volume2 className="w-4 h-4 text-primary" />}
         </button>
 
         {total > 1 && isPlaying && (
