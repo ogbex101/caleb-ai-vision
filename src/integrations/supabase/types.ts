@@ -89,45 +89,165 @@ export type Database = {
         }
         Relationships: []
       }
+      link_copies: {
+        Row: {
+          category_slug: string | null
+          created_at: string
+          id: string
+          subcategory_slug: string | null
+          url: string
+          username: string | null
+        }
+        Insert: {
+          category_slug?: string | null
+          created_at?: string
+          id?: string
+          subcategory_slug?: string | null
+          url: string
+          username?: string | null
+        }
+        Update: {
+          category_slug?: string | null
+          created_at?: string
+          id?: string
+          subcategory_slug?: string | null
+          url?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      page_views: {
+        Row: {
+          category_slug: string | null
+          created_at: string
+          id: string
+          path: string
+          referrer: string | null
+          source: string
+          subcategory_slug: string | null
+          username: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          category_slug?: string | null
+          created_at?: string
+          id?: string
+          path: string
+          referrer?: string | null
+          source?: string
+          subcategory_slug?: string | null
+          username?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          category_slug?: string | null
+          created_at?: string
+          id?: string
+          path?: string
+          referrer?: string | null
+          source?: string
+          subcategory_slug?: string | null
+          username?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          visitor_id?: string | null
+        }
+        Relationships: []
+      }
       portfolio_items: {
         Row: {
           category: string | null
+          category_slug: string | null
           client_name: string | null
           created_at: string
           description: string | null
           featured: boolean
           full_video_url: string | null
           id: string
+          preview_seconds: number
           sort_order: number
+          subcategory_slug: string | null
           thumbnail_url: string | null
           title: string
           video_url: string | null
         }
         Insert: {
           category?: string | null
+          category_slug?: string | null
           client_name?: string | null
           created_at?: string
           description?: string | null
           featured?: boolean
           full_video_url?: string | null
           id?: string
+          preview_seconds?: number
           sort_order?: number
+          subcategory_slug?: string | null
           thumbnail_url?: string | null
           title: string
           video_url?: string | null
         }
         Update: {
           category?: string | null
+          category_slug?: string | null
           client_name?: string | null
           created_at?: string
           description?: string | null
           featured?: boolean
           full_video_url?: string | null
           id?: string
+          preview_seconds?: number
           sort_order?: number
+          subcategory_slug?: string | null
           thumbnail_url?: string | null
           title?: string
           video_url?: string | null
+        }
+        Relationships: []
+      }
+      site_layouts: {
+        Row: {
+          active: boolean
+          created_at: string
+          display_name: string
+          hero_media_type: string
+          hero_media_url: string | null
+          id: string
+          tagline: string | null
+          theme: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          display_name: string
+          hero_media_type?: string
+          hero_media_url?: string | null
+          id?: string
+          tagline?: string | null
+          theme?: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          display_name?: string
+          hero_media_type?: string
+          hero_media_url?: string | null
+          id?: string
+          tagline?: string | null
+          theme?: string
+          updated_at?: string
+          username?: string
         }
         Relationships: []
       }
