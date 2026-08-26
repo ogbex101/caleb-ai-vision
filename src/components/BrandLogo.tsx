@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 
-type Variant = "caleb" | "faith";
+type Variant = "caleb" | "faith" | "daniel";
 
 interface Props {
   variant: Variant;
@@ -22,6 +22,12 @@ const config = {
     name: "Faith K",
     role: "AI Video Craft",
     gradientId: "brand-grad-fk",
+  },
+  daniel: {
+    initials: "DS",
+    name: "Daniel Studio",
+    role: "Generative Motion",
+    gradientId: "brand-grad-ds",
   },
 } as const;
 
