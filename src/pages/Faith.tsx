@@ -7,6 +7,8 @@ import TestimonialsSection from "@/components/TestimonialsSection";
 import FAQSection from "@/components/FAQSection";
 import ContactSection from "@/components/ContactSection";
 import BrandLogo from "@/components/BrandLogo";
+import CategoryLinkBuilder from "@/components/CategoryLinkBuilder";
+import { usePageView } from "@/hooks/usePageView";
 
 const FaithNavbar = () => (
   <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
@@ -194,11 +196,13 @@ const FaithFooter = () => (
 );
 
 const Faith = () => {
+  usePageView({ username: "faith" });
   return (
     <div className="min-h-screen bg-background">
       <FaithNavbar />
       <FaithHero />
       <FaithAbout />
+      <CategoryLinkBuilder username="faith" />
       <section id="portfolio">
         <PortfolioSection showCertificate={false} />
       </section>
