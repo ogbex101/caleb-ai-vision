@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2 } from "lucide-react";
+import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2, BarChart3, Eye, Copy, Users, Image as ImageIcon } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
+import { CATEGORIES, getCategory } from "@/lib/categories";
 
-type SectionName = "hero" | "about" | "techStack" | "portfolio" | "testimonials" | "messages" | "settings";
+type SectionName = "analytics" | "hero" | "about" | "techStack" | "portfolio" | "layouts" | "testimonials" | "messages" | "settings";
 
 const MAX_VIDEO_SIZE_MB = 50;
 
@@ -23,10 +24,14 @@ const AdminDashboard = () => {
   const [portfolio, setPortfolio] = useState<any[]>([]);
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
+  const [layouts, setLayouts] = useState<any[]>([]);
+  const [pageViews, setPageViews] = useState<any[]>([]);
+  const [linkCopies, setLinkCopies] = useState<any[]>([]);
 
   // Upload states
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [bulkUploading, setBulkUploading] = useState<{ done: number; total: number } | null>(null);
+  const [heroUploading, setHeroUploading] = useState<string | null>(null);
 
   // Settings
   const [newEmail, setNewEmail] = useState("");
@@ -47,13 +52,16 @@ const AdminDashboard = () => {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [h, a, t, p, te, m] = await Promise.all([
+    const [h, a, t, p, te, m, l, pv, lc] = await Promise.all([
       supabase.from("hero_section").select("*").limit(1).single(),
       supabase.from("about_section").select("*").limit(1).single(),
       supabase.from("tech_stack").select("*").order("sort_order"),
       supabase.from("portfolio_items").select("*").order("sort_order"),
       supabase.from("testimonials").select("*").order("sort_order"),
       supabase.from("contact_messages").select("*").order("created_at", { ascending: false }),
+      supabase.from("site_layouts").select("*").order("created_at"),
+      supabase.from("page_views").select("*").order("created_at", { ascending: false }).limit(5000),
+      supabase.from("link_copies").select("*").order("created_at", { ascending: false }).limit(5000),
     ]);
     if (h.data) setHero(h.data);
     if (a.data) setAbout(a.data);
@@ -61,6 +69,9 @@ const AdminDashboard = () => {
     if (p.data) setPortfolio(p.data);
     if (te.data) setTestimonials(te.data);
     if (m.data) setMessages(m.data);
+    if (l.data) setLayouts(l.data);
+    if (pv.data) setPageViews(pv.data);
+    if (lc.data) setLinkCopies(lc.data);
     setLoading(false);
   };
 
@@ -145,6 +156,8 @@ const AdminDashboard = () => {
       title: item.title, description: item.description, client_name: item.client_name,
       category: item.category, featured: item.featured, video_url: item.video_url,
       full_video_url: item.full_video_url, sort_order: item.sort_order,
+      category_slug: item.category_slug || null, subcategory_slug: item.subcategory_slug || null,
+      preview_seconds: item.preview_seconds || 30,
     }).eq("id", item.id);
     toast({ title: error ? "Failed to save" : `${item.title} updated!`, variant: error ? "destructive" : "default" });
   };
@@ -171,7 +184,7 @@ const AdminDashboard = () => {
 
       const { data: newRow, error: insErr } = await supabase
         .from("portfolio_items")
-        .insert({ title, description: "", client_name: "", category: "", sort_order: ++baseOrder })
+        .insert({ title, description: "", client_name: "", category: "", preview_seconds: 30, sort_order: ++baseOrder })
         .select()
         .single();
       if (insErr || !newRow) {
@@ -231,9 +244,58 @@ const AdminDashboard = () => {
   const addPortfolioItem = async () => {
     const { data } = await supabase.from("portfolio_items").insert({
       title: "New Project", description: "Project description", client_name: "Client",
-      category: "Category", sort_order: portfolio.length + 1,
+      category: "", preview_seconds: 30, sort_order: portfolio.length + 1,
     }).select().single();
     if (data) setPortfolio([...portfolio, data]);
+  };
+
+  const saveLayout = async (layout: any) => {
+    const { error } = await supabase.from("site_layouts").update({
+      display_name: layout.display_name,
+      theme: layout.theme,
+      tagline: layout.tagline,
+      hero_media_url: layout.hero_media_url || null,
+      hero_media_type: layout.hero_media_type,
+      active: layout.active,
+      updated_at: new Date().toISOString(),
+    }).eq("id", layout.id);
+    toast({ title: error ? "Failed to save layout" : `${layout.display_name} layout updated`, variant: error ? "destructive" : "default" });
+  };
+
+  const addLayout = async () => {
+    const username = `user-${layouts.length + 1}`;
+    const { data, error } = await supabase.from("site_layouts").insert({
+      username,
+      display_name: "New User",
+      theme: "cinematic",
+      hero_media_type: "video",
+    }).select().single();
+    if (data) setLayouts((current) => [...current, data]);
+    toast({ title: error ? "Failed to add layout" : "Layout created", variant: error ? "destructive" : "default" });
+  };
+
+  const uploadHeroMedia = async (index: number, file: File) => {
+    if (file.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+      toast({ title: `Hero media must be under ${MAX_VIDEO_SIZE_MB}MB`, variant: "destructive" });
+      return;
+    }
+    const layout = layouts[index];
+    setHeroUploading(layout.id);
+    const ext = file.name.split(".").pop() || (file.type.startsWith("image/") ? "jpg" : "mp4");
+    const path = `heroes/${layout.username}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("portfolio-videos").upload(path, file, { contentType: file.type, upsert: true });
+    if (error) {
+      toast({ title: `Hero upload failed: ${error.message}`, variant: "destructive" });
+      setHeroUploading(null);
+      return;
+    }
+    const { data } = supabase.storage.from("portfolio-videos").getPublicUrl(path);
+    const next = [...layouts];
+    next[index] = { ...layout, hero_media_url: data.publicUrl, hero_media_type: file.type.startsWith("image/") ? "image" : "video" };
+    setLayouts(next);
+    await supabase.from("site_layouts").update({ hero_media_url: data.publicUrl, hero_media_type: next[index].hero_media_type, updated_at: new Date().toISOString() }).eq("id", layout.id);
+    setHeroUploading(null);
+    toast({ title: "Hero media uploaded" });
   };
 
   const saveTestimonial = async (item: any) => {
@@ -280,14 +342,27 @@ const AdminDashboard = () => {
   };
 
   const sections: { key: SectionName; label: string; icon: any }[] = [
+    { key: "analytics", label: "Analytics", icon: BarChart3 },
     { key: "hero", label: "Hero Section", icon: ChevronUp },
     { key: "about", label: "About Section", icon: ChevronDown },
     { key: "techStack", label: "Tech Stack", icon: Settings },
     { key: "portfolio", label: "Portfolio", icon: Plus },
+    { key: "layouts", label: "User Layouts", icon: ImageIcon },
     { key: "testimonials", label: "Testimonials", icon: MessageSquare },
     { key: "messages", label: "Messages", icon: Mail },
     { key: "settings", label: "Settings", icon: Settings },
   ];
+
+  const uniqueVisitors = new Set(pageViews.map((view) => view.visitor_id).filter(Boolean)).size;
+  const countBy = (rows: any[], key: string) => Object.entries(rows.reduce<Record<string, number>>((acc, row) => {
+    const value = row[key] || "Unknown";
+    acc[value] = (acc[value] || 0) + 1;
+    return acc;
+  }, {})).sort((a, b) => b[1] - a[1]);
+  const categoryViews = countBy(pageViews.filter((view) => view.category_slug), "category_slug");
+  const layoutViews = countBy(pageViews, "username");
+  const sourceViews = countBy(pageViews, "source");
+  const copiedCategories = countBy(linkCopies, "category_slug");
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading...</div>;
 
@@ -339,6 +414,31 @@ const AdminDashboard = () => {
               </button>
             ))}
           </div>
+
+          {activeSection === "analytics" && (
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-2xl font-display font-bold">Portfolio Analytics</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Views and link activity recorded across every user layout.</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <StatCard icon={Eye} label="Total views" value={pageViews.length} />
+                <StatCard icon={Users} label="Unique visitors" value={uniqueVisitors} />
+                <StatCard icon={Copy} label="Links copied" value={linkCopies.length} />
+              </div>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <AnalyticsList title="Views by user layout" rows={layoutViews} />
+                <AnalyticsList title="Traffic sources" rows={sourceViews} />
+                <AnalyticsList title="Most-viewed categories" rows={categoryViews} empty="Category pages have not been viewed yet." />
+                <AnalyticsList title="Most-copied categories" rows={copiedCategories} empty="No category links copied yet." />
+              </div>
+              <div className="rounded-xl border border-border bg-card p-6">
+                <h3 className="font-display font-semibold">Upload activity</h3>
+                <p className="mt-2 text-3xl font-display font-bold text-primary">{portfolio.length}</p>
+                <p className="text-sm text-muted-foreground">videos in the shared library</p>
+              </div>
+            </div>
+          )}
 
           {/* Hero */}
           {activeSection === "hero" && (
@@ -448,7 +548,9 @@ const AdminDashboard = () => {
                   <div className="grid sm:grid-cols-2 gap-4">
                     <InputField label="Title" value={item.title} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], title: v }; setPortfolio(u); }} />
                     <InputField label="Client" value={item.client_name || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], client_name: v }; setPortfolio(u); }} />
-                    <InputField label="Category" value={item.category || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], category: v }; setPortfolio(u); }} />
+                    <SelectField label="Top-level category" value={item.category_slug || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], category_slug: v, subcategory_slug: "", category: getCategory(v)?.label || "" }; setPortfolio(u); }} options={CATEGORIES.map((category) => ({ value: category.slug, label: category.label }))} placeholder="Choose a category" />
+                    <SelectField label="Sub-category" value={item.subcategory_slug || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], subcategory_slug: v }; setPortfolio(u); }} options={(getCategory(item.category_slug)?.subcategories || []).map((sub) => ({ value: sub.slug, label: sub.label }))} placeholder={item.category_slug ? "All sub-categories" : "Choose category first"} disabled={!item.category_slug} />
+                    <SelectField label="Preview length" value={String(item.preview_seconds || 30)} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], preview_seconds: Number(v) }; setPortfolio(u); }} options={[{ value: "30", label: "30 seconds" }, { value: "60", label: "60 seconds" }]} />
                     <InputField label="Sort Order" value={String(item.sort_order || 0)} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], sort_order: parseInt(v) || 0 }; setPortfolio(u); }} />
                   </div>
                   <InputField label="Description" value={item.description || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], description: v }; setPortfolio(u); }} textarea />
@@ -512,6 +614,42 @@ const AdminDashboard = () => {
                   <div className="flex gap-2">
                     <SaveButton onClick={() => savePortfolioItem(portfolio[i])} />
                     <DeleteButton onClick={() => deletePortfolioItem(item.id)} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {activeSection === "layouts" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-display font-bold">User Layouts</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Manage identity and cinematic hero media. All layouts share one video library.</p>
+                </div>
+                <button onClick={addLayout} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"><Plus className="h-4 w-4" /> Add Layout</button>
+              </div>
+              {layouts.map((layout, i) => (
+                <div key={layout.id} className="space-y-5 rounded-xl border border-border bg-card p-6">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <InputField label="URL username" value={layout.username} onChange={() => {}} />
+                    <InputField label="Display name" value={layout.display_name} onChange={(v) => { const next = [...layouts]; next[i] = { ...layout, display_name: v }; setLayouts(next); }} />
+                    <InputField label="Theme" value={layout.theme} onChange={(v) => { const next = [...layouts]; next[i] = { ...layout, theme: v }; setLayouts(next); }} />
+                    <SelectField label="Hero media type" value={layout.hero_media_type || "video"} onChange={(v) => { const next = [...layouts]; next[i] = { ...layout, hero_media_type: v }; setLayouts(next); }} options={[{ value: "video", label: "Video" }, { value: "image", label: "Image" }]} />
+                  </div>
+                  <InputField label="Tagline" value={layout.tagline || ""} onChange={(v) => { const next = [...layouts]; next[i] = { ...layout, tagline: v }; setLayouts(next); }} />
+                  <InputField label="Hero media URL" value={layout.hero_media_url || ""} onChange={(v) => { const next = [...layouts]; next[i] = { ...layout, hero_media_url: v }; setLayouts(next); }} />
+                  {layout.hero_media_url && (
+                    <div className="aspect-video max-w-xl overflow-hidden rounded-lg border border-border bg-background">
+                      {layout.hero_media_type === "image" ? <img src={layout.hero_media_url} alt="Hero preview" className="h-full w-full object-cover" /> : <video src={layout.hero_media_url} controls className="h-full w-full object-cover" />}
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-3">
+                    <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground">
+                      {heroUploading === layout.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Replace Hero
+                      <input type="file" accept="video/*,image/*" className="hidden" disabled={heroUploading === layout.id} onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadHeroMedia(i, file); e.target.value = ""; }} />
+                    </label>
+                    <SaveButton onClick={() => saveLayout(layout)} />
                   </div>
                 </div>
               ))}
@@ -607,6 +745,43 @@ const InputField = ({ label, value, onChange, textarea, rows, placeholder, type 
         placeholder={placeholder}
         className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors text-sm"
       />
+    )}
+  </div>
+);
+
+const SelectField = ({ label, value, onChange, options, placeholder, disabled }: {
+  label: string; value: string; onChange: (value: string) => void;
+  options: { value: string; label: string }[]; placeholder?: string; disabled?: boolean;
+}) => (
+  <div>
+    <label className="mb-1.5 block text-sm text-muted-foreground">{label}</label>
+    <select value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground transition-colors focus:border-primary/50 focus:outline-none disabled:opacity-50">
+      {placeholder && <option value="">{placeholder}</option>}
+      {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+    </select>
+  </div>
+);
+
+const StatCard = ({ icon: Icon, label, value }: { icon: any; label: string; value: number }) => (
+  <div className="rounded-xl border border-border bg-card p-5">
+    <Icon className="mb-4 h-5 w-5 text-primary" />
+    <div className="font-display text-3xl font-bold">{value.toLocaleString()}</div>
+    <div className="mt-1 text-sm text-muted-foreground">{label}</div>
+  </div>
+);
+
+const AnalyticsList = ({ title, rows, empty = "No data yet." }: { title: string; rows: [string, number][]; empty?: string }) => (
+  <div className="rounded-xl border border-border bg-card p-6">
+    <h3 className="font-display font-semibold">{title}</h3>
+    {rows.length === 0 ? <p className="mt-5 text-sm text-muted-foreground">{empty}</p> : (
+      <div className="mt-5 space-y-3">
+        {rows.slice(0, 6).map(([label, count]) => (
+          <div key={label} className="flex items-center justify-between border-b border-border/60 pb-3 text-sm last:border-0">
+            <span className="capitalize text-muted-foreground">{label.replaceAll("-", " ")}</span>
+            <span className="font-mono text-primary">{count}</span>
+          </div>
+        ))}
+      </div>
     )}
   </div>
 );
