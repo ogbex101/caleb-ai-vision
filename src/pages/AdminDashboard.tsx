@@ -777,7 +777,7 @@ const AnalyticsList = ({ title, rows, empty = "No data yet." }: { title: string;
       <div className="mt-5 space-y-3">
         {rows.slice(0, 6).map(([label, count]) => (
           <div key={label} className="flex items-center justify-between border-b border-border/60 pb-3 text-sm last:border-0">
-            <span className="capitalize text-muted-foreground">{label.replaceAll("-", " ")}</span>
+            <span className="capitalize text-muted-foreground">{label.replace(/-/g, " ")}</span>
             <span className="font-mono text-primary">{count}</span>
           </div>
         ))}
