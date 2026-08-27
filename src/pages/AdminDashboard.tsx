@@ -531,7 +531,38 @@ const AdminDashboard = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Upload target + list filter */}
+              <div className="grid gap-4 md:grid-cols-3 p-5 rounded-xl bg-card border border-border">
+                <SelectField
+                  label="Upload into category"
+                  value={uploadCat}
+                  onChange={(v) => { setUploadCat(v); setUploadSub(""); }}
+                  options={CATEGORIES.map((c) => ({ value: c.slug, label: c.label }))}
+                  placeholder="No category"
+                />
+                <SelectField
+                  label="Upload into sub-category"
+                  value={uploadSub}
+                  onChange={setUploadSub}
+                  options={(getCategory(uploadCat)?.subcategories || []).map((s) => ({ value: s.slug, label: s.label }))}
+                  placeholder={uploadCat ? "No sub-category" : "Choose category first"}
+                  disabled={!uploadCat}
+                />
+                <SelectField
+                  label="Filter list by category"
+                  value={filterCat}
+                  onChange={setFilterCat}
+                  options={CATEGORIES.map((c) => ({ value: c.slug, label: c.label }))}
+                  placeholder="All categories"
+                />
+                <p className="md:col-span-3 text-xs text-muted-foreground">
+                  New projects and every bulk-uploaded file are tagged with the category above automatically — you can still change any item individually below.
+                </p>
+              </div>
+
               {portfolio.map((item, i) => (
+                filterCat && item.category_slug !== filterCat ? null : (
                 <div key={item.id} className={`p-6 rounded-xl bg-card border transition-colors space-y-4 ${item.featured ? 'border-primary/60' : 'border-border'}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
