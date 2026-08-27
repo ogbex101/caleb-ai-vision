@@ -189,7 +189,7 @@ const AdminDashboard = () => {
 
       const { data: newRow, error: insErr } = await supabase
         .from("portfolio_items")
-        .insert({ title, description: "", client_name: "", category: "", preview_seconds: 30, sort_order: ++baseOrder })
+        .insert({ title, description: "", client_name: "", category: getCategory(uploadCat)?.label || "", category_slug: uploadCat || null, subcategory_slug: uploadSub || null, preview_seconds: 30, sort_order: ++baseOrder })
         .select()
         .single();
       if (insErr || !newRow) {
@@ -249,7 +249,8 @@ const AdminDashboard = () => {
   const addPortfolioItem = async () => {
     const { data } = await supabase.from("portfolio_items").insert({
       title: "New Project", description: "Project description", client_name: "Client",
-      category: "", preview_seconds: 30, sort_order: portfolio.length + 1,
+      category: getCategory(uploadCat)?.label || "", category_slug: uploadCat || null,
+      subcategory_slug: uploadSub || null, preview_seconds: 30, sort_order: portfolio.length + 1,
     }).select().single();
     if (data) setPortfolio([...portfolio, data]);
   };
