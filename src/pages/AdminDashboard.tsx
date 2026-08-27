@@ -33,6 +33,11 @@ const AdminDashboard = () => {
   const [bulkUploading, setBulkUploading] = useState<{ done: number; total: number } | null>(null);
   const [heroUploading, setHeroUploading] = useState<string | null>(null);
 
+  // Upload target category (applied to bulk uploads + new projects) and list filter
+  const [uploadCat, setUploadCat] = useState("");
+  const [uploadSub, setUploadSub] = useState("");
+  const [filterCat, setFilterCat] = useState("");
+
   // Settings
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -184,7 +189,7 @@ const AdminDashboard = () => {
 
       const { data: newRow, error: insErr } = await supabase
         .from("portfolio_items")
-        .insert({ title, description: "", client_name: "", category: "", preview_seconds: 30, sort_order: ++baseOrder })
+        .insert({ title, description: "", client_name: "", category: getCategory(uploadCat)?.label || "", category_slug: uploadCat || null, subcategory_slug: uploadSub || null, preview_seconds: 30, sort_order: ++baseOrder })
         .select()
         .single();
       if (insErr || !newRow) {
@@ -244,7 +249,8 @@ const AdminDashboard = () => {
   const addPortfolioItem = async () => {
     const { data } = await supabase.from("portfolio_items").insert({
       title: "New Project", description: "Project description", client_name: "Client",
-      category: "", preview_seconds: 30, sort_order: portfolio.length + 1,
+      category: getCategory(uploadCat)?.label || "", category_slug: uploadCat || null,
+      subcategory_slug: uploadSub || null, preview_seconds: 30, sort_order: portfolio.length + 1,
     }).select().single();
     if (data) setPortfolio([...portfolio, data]);
   };
@@ -525,7 +531,38 @@ const AdminDashboard = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Upload target + list filter */}
+              <div className="grid gap-4 md:grid-cols-3 p-5 rounded-xl bg-card border border-border">
+                <SelectField
+                  label="Upload into category"
+                  value={uploadCat}
+                  onChange={(v) => { setUploadCat(v); setUploadSub(""); }}
+                  options={CATEGORIES.map((c) => ({ value: c.slug, label: c.label }))}
+                  placeholder="No category"
+                />
+                <SelectField
+                  label="Upload into sub-category"
+                  value={uploadSub}
+                  onChange={setUploadSub}
+                  options={(getCategory(uploadCat)?.subcategories || []).map((s) => ({ value: s.slug, label: s.label }))}
+                  placeholder={uploadCat ? "No sub-category" : "Choose category first"}
+                  disabled={!uploadCat}
+                />
+                <SelectField
+                  label="Filter list by category"
+                  value={filterCat}
+                  onChange={setFilterCat}
+                  options={CATEGORIES.map((c) => ({ value: c.slug, label: c.label }))}
+                  placeholder="All categories"
+                />
+                <p className="md:col-span-3 text-xs text-muted-foreground">
+                  New projects and every bulk-uploaded file are tagged with the category above automatically — you can still change any item individually below.
+                </p>
+              </div>
+
               {portfolio.map((item, i) => (
+                filterCat && item.category_slug !== filterCat ? null : (
                 <div key={item.id} className={`p-6 rounded-xl bg-card border transition-colors space-y-4 ${item.featured ? 'border-primary/60' : 'border-border'}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -615,7 +652,8 @@ const AdminDashboard = () => {
                     <SaveButton onClick={() => savePortfolioItem(portfolio[i])} />
                     <DeleteButton onClick={() => deletePortfolioItem(item.id)} />
                   </div>
-                </div>
+                 </div>
+                )
               ))}
             </div>
           )}
