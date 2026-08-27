@@ -33,6 +33,11 @@ const AdminDashboard = () => {
   const [bulkUploading, setBulkUploading] = useState<{ done: number; total: number } | null>(null);
   const [heroUploading, setHeroUploading] = useState<string | null>(null);
 
+  // Upload target category (applied to bulk uploads + new projects) and list filter
+  const [uploadCat, setUploadCat] = useState("");
+  const [uploadSub, setUploadSub] = useState("");
+  const [filterCat, setFilterCat] = useState("");
+
   // Settings
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
