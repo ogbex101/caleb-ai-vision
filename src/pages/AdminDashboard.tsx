@@ -652,7 +652,8 @@ const AdminDashboard = () => {
                     <SaveButton onClick={() => savePortfolioItem(portfolio[i])} />
                     <DeleteButton onClick={() => deletePortfolioItem(item.id)} />
                   </div>
-                </div>
+                 </div>
+                )
               ))}
             </div>
           )}
