@@ -329,6 +329,41 @@ export type Database = {
         }
         Relationships: []
       }
+      video_clicks: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string | null
+          title: string | null
+          username: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          title?: string | null
+          username?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          title?: string | null
+          username?: string | null
+          visitor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_clicks_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "portfolio_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
