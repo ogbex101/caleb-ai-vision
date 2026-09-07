@@ -163,8 +163,10 @@ export type Database = {
       }
       portfolio_items: {
         Row: {
+          aspect_ratio: string
           category: string | null
           category_slug: string | null
+          category_tags: Json
           client_name: string | null
           created_at: string
           description: string | null
@@ -179,8 +181,10 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          aspect_ratio?: string
           category?: string | null
           category_slug?: string | null
+          category_tags?: Json
           client_name?: string | null
           created_at?: string
           description?: string | null
@@ -195,8 +199,10 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          aspect_ratio?: string
           category?: string | null
           category_slug?: string | null
+          category_tags?: Json
           client_name?: string | null
           created_at?: string
           description?: string | null
