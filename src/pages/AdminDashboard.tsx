@@ -191,14 +191,23 @@ const AdminDashboard = () => {
   };
 
   const savePortfolioItem = async (item: any) => {
-    const { error } = await supabase.from("portfolio_items").update({
+    const tags: CategoryTag[] = readTags(item).slice(0, MAX_CATEGORY_TAGS);
+    const primary = tags[0];
+    const { error } = await (supabase as any).from("portfolio_items").update({
       title: item.title, description: item.description, client_name: item.client_name,
-      category: item.category, featured: item.featured, video_url: item.video_url,
+      category: getCategory(primary?.category)?.label || item.category || null,
+      featured: item.featured, video_url: item.video_url,
       full_video_url: item.full_video_url, sort_order: item.sort_order,
-      category_slug: item.category_slug || null, subcategory_slug: item.subcategory_slug || null,
+      category_slug: primary?.category || null,
+      subcategory_slug: primary?.subcategory || null,
+      category_tags: tags,
       preview_seconds: item.preview_seconds || 30, aspect_ratio: item.aspect_ratio || "16:9",
     }).eq("id", item.id);
-    toast({ title: error ? "Failed to save" : `${item.title} updated!`, variant: error ? "destructive" : "default" });
+    toast({
+      title: error ? "Failed to save" : `${item.title} updated!`,
+      description: error?.message,
+      variant: error ? "destructive" : "default",
+    });
   };
 
   // Bulk upload: one portfolio item per file, filename becomes the title
