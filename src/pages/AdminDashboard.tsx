@@ -711,12 +711,11 @@ const AdminDashboard = () => {
                   <div className="grid sm:grid-cols-2 gap-4">
                     <InputField label="Title" value={item.title} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], title: v }; setPortfolio(u); }} />
                     <InputField label="Client" value={item.client_name || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], client_name: v }; setPortfolio(u); }} />
-                    <SelectField label="Top-level category" value={item.category_slug || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], category_slug: v, subcategory_slug: "", category: getCategory(v)?.label || "" }; setPortfolio(u); }} options={CATEGORIES.map((category) => ({ value: category.slug, label: category.label }))} placeholder="Choose a category" />
-                    <SelectField label="Sub-category" value={item.subcategory_slug || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], subcategory_slug: v }; setPortfolio(u); }} options={(getCategory(item.category_slug)?.subcategories || []).map((sub) => ({ value: sub.slug, label: sub.label }))} placeholder={item.category_slug ? "All sub-categories" : "Choose category first"} disabled={!item.category_slug} />
                     <SelectField label="Preview length" value={String(item.preview_seconds || 30)} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], preview_seconds: Number(v) }; setPortfolio(u); }} options={[{ value: "30", label: "30 seconds" }, { value: "60", label: "60 seconds" }]} />
                     <SelectField label="Aspect ratio" value={item.aspect_ratio || "16:9"} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], aspect_ratio: v }; setPortfolio(u); }} options={ASPECT_RATIOS.map((r) => ({ value: r.slug, label: r.label }))} />
                     <InputField label="Sort Order" value={String(item.sort_order || 0)} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], sort_order: parseInt(v) || 0 }; setPortfolio(u); }} />
                   </div>
+                  <CategoryTagsEditor tags={readTags(item)} onChange={(tags) => { const u = [...portfolio]; u[i] = { ...u[i], category_tags: tags, category_slug: tags[0]?.category || null, subcategory_slug: tags[0]?.subcategory || null }; setPortfolio(u); }} />
                   <InputField label="Description" value={item.description || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], description: v }; setPortfolio(u); }} textarea />
 
                   {/* Video Upload / URL */}
