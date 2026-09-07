@@ -163,7 +163,6 @@ export type Database = {
       }
       portfolio_items: {
         Row: {
-          aspect_ratio: string
           category: string | null
           category_slug: string | null
           client_name: string | null
@@ -180,7 +179,6 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
-          aspect_ratio?: string
           category?: string | null
           category_slug?: string | null
           client_name?: string | null
@@ -197,7 +195,6 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
-          aspect_ratio?: string
           category?: string | null
           category_slug?: string | null
           client_name?: string | null
@@ -291,7 +288,6 @@ export type Database = {
           id: string
           rating: number | null
           sort_order: number
-          username: string
         }
         Insert: {
           client_avatar?: string | null
@@ -302,7 +298,6 @@ export type Database = {
           id?: string
           rating?: number | null
           sort_order?: number
-          username?: string
         }
         Update: {
           client_avatar?: string | null
@@ -313,7 +308,6 @@ export type Database = {
           id?: string
           rating?: number | null
           sort_order?: number
-          username?: string
         }
         Relationships: []
       }
