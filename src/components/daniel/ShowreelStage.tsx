@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { PortfolioItem } from "@/hooks/usePortfolioItems";
 import { getCategory, getSubCategory } from "@/lib/categories";
 import { trackVideoClick } from "@/lib/trackVideoClick";
+import Reveal from "@/components/daniel/Reveal";
+import TiltCard from "@/components/daniel/TiltCard";
 
 const SLIDE_MS = 10000;
 
@@ -69,7 +71,7 @@ const ShowreelStage = ({ items }: { items: PortfolioItem[] }) => {
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_150px]">
       {/* Stage */}
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-card film-grain">
+      <Reveal direction="left" className="relative overflow-hidden rounded-3xl border border-border bg-card film-grain">
         <div className="relative aspect-[16/9] bg-background">
           <AnimatePresence mode="popLayout">
             <motion.div
@@ -186,30 +188,31 @@ const ShowreelStage = ({ items }: { items: PortfolioItem[] }) => {
         <div className="h-1 w-full bg-muted">
           <motion.div className="h-full bg-gradient-to-r from-primary to-accent" style={{ width: `${progress * 100}%` }} />
         </div>
-      </div>
+      </Reveal>
 
       {/* Filmstrip */}
-      <div className="flex gap-3 overflow-x-auto lg:max-h-[520px] lg:flex-col lg:overflow-y-auto lg:pr-1">
+      <Reveal direction="right" delay={0.1} className="flex gap-3 overflow-x-auto lg:max-h-[520px] lg:flex-col lg:overflow-y-auto lg:pr-1">
         {items.map((clip, i) => (
-          <button
-            key={clip.id}
-            onClick={() => { setIndex(i); setProgress(0); }}
-            aria-label={`Show ${clip.title}`}
-            className={`relative aspect-video w-36 shrink-0 overflow-hidden rounded-xl border text-left transition-all lg:w-full ${
-              i === index ? "border-primary shadow-[var(--shadow-glow)]" : "border-border opacity-60 hover:opacity-100"
-            }`}
-          >
-            {clip.video_url ? (
-              <video src={clip.video_url} muted playsInline preload="metadata" className="h-full w-full object-cover" />
-            ) : (
-              <img src={clip.thumbnail_url || "/placeholder.svg"} alt="" className="h-full w-full object-cover" />
-            )}
-            <span className="absolute inset-x-0 bottom-0 truncate bg-background/75 px-2 py-1 text-[10px] font-medium">
-              {clip.title}
-            </span>
-          </button>
+          <TiltCard key={clip.id} strength={8} className="w-36 shrink-0 lg:w-full">
+            <button
+              onClick={() => { setIndex(i); setProgress(0); }}
+              aria-label={`Show ${clip.title}`}
+              className={`relative aspect-video w-full overflow-hidden rounded-xl border text-left transition-all ${
+                i === index ? "border-primary shadow-[var(--shadow-glow)]" : "border-border opacity-60 hover:opacity-100"
+              }`}
+            >
+              {clip.video_url ? (
+                <video src={clip.video_url} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+              ) : (
+                <img src={clip.thumbnail_url || "/placeholder.svg"} alt="" className="h-full w-full object-cover" />
+              )}
+              <span className="absolute inset-x-0 bottom-0 truncate bg-background/75 px-2 py-1 text-[10px] font-medium">
+                {clip.title}
+              </span>
+            </button>
+          </TiltCard>
         ))}
-      </div>
+      </Reveal>
     </div>
   );
 };

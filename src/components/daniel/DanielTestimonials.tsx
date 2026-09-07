@@ -2,6 +2,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Quote, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import Reveal from "@/components/daniel/Reveal";
+import TiltCard from "@/components/daniel/TiltCard";
 
 interface Testimonial {
   id: string;
@@ -61,7 +63,7 @@ const DanielTestimonials = () => {
       <div className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[600px] -translate-x-1/2 rounded-full bg-primary/10 blur-[150px]" />
 
       <div className="relative mx-auto max-w-4xl">
-        <div className="mb-14 flex items-end justify-between gap-6 border-b border-border pb-6">
+        <Reveal className="mb-14 flex items-end justify-between gap-6 border-b border-border pb-6">
           <div>
             <span className="text-xs uppercase tracking-[0.3em] text-primary">Client testimony</span>
             <h2 className="mt-4 font-display text-4xl font-bold md:text-6xl">On the record.</h2>
@@ -76,35 +78,37 @@ const DanielTestimonials = () => {
               </button>
             </div>
           )}
-        </div>
+        </Reveal>
 
         {current && (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={current.id}
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -40 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="relative rounded-3xl border border-gold/40 bg-card/60 p-10 md:p-14"
-            >
-              <Quote className="h-10 w-10 text-gold" />
-              <p className="mt-6 font-display text-xl leading-relaxed text-foreground/90 md:text-3xl">
-                "{current.content}"
-              </p>
-              <div className="mt-10 flex flex-wrap items-center justify-between gap-6 border-t border-border pt-6">
-                <div>
-                  <div className="font-display text-lg font-semibold">{current.name}</div>
-                  <div className="text-sm text-muted-foreground">{current.title}</div>
+          <TiltCard strength={5}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={current.id}
+                initial={{ opacity: 0, rotateY: 12, x: 40 }}
+                animate={{ opacity: 1, rotateY: 0, x: 0 }}
+                exit={{ opacity: 0, rotateY: -12, x: -40 }}
+                transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                className="relative rounded-3xl border border-gold/40 bg-card/60 p-10 md:p-14"
+              >
+                <Quote className="h-10 w-10 text-gold" />
+                <p className="mt-6 font-display text-xl leading-relaxed text-foreground/90 md:text-3xl">
+                  "{current.content}"
+                </p>
+                <div className="mt-10 flex flex-wrap items-center justify-between gap-6 border-t border-border pt-6">
+                  <div>
+                    <div className="font-display text-lg font-semibold">{current.name}</div>
+                    <div className="text-sm text-muted-foreground">{current.title}</div>
+                  </div>
+                  <div className="flex gap-1">
+                    {Array.from({ length: current.rating || 5 }).map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-gold text-gold" />
+                    ))}
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  {Array.from({ length: current.rating || 5 }).map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-gold text-gold" />
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
+              </motion.div>
+            </AnimatePresence>
+          </TiltCard>
         )}
 
         {total > 1 && (

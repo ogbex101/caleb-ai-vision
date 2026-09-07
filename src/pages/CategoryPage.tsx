@@ -1,12 +1,12 @@
 import { motion } from "framer-motion";
 import { ArrowLeft, Film } from "lucide-react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import BrandLogo from "@/components/BrandLogo";
 import CategoryLinkBuilder from "@/components/CategoryLinkBuilder";
 import PortfolioGrid from "@/components/PortfolioGrid";
 import { usePageView } from "@/hooks/usePageView";
 import { usePortfolioItems } from "@/hooks/usePortfolioItems";
-import { getCategory, getSubCategory, parseCategoryParam, USERNAMES, type Username } from "@/lib/categories";
+import { ASPECT_RATIOS, getCategory, getSubCategory, parseCategoryParam, USERNAMES, type Username } from "@/lib/categories";
 
 const displayNames: Record<Username, string> = {
   caleb: "Caleb Peters",
@@ -16,19 +16,29 @@ const displayNames: Record<Username, string> = {
 
 const CategoryPage = () => {
   const { username: rawUsername, categoryParam, subcategory } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const username = USERNAMES.find((value) => value === rawUsername);
   const categorySlug = parseCategoryParam(categoryParam);
   const category = getCategory(categorySlug);
   const sub = getSubCategory(categorySlug, subcategory);
   const invalidSubcategory = Boolean(subcategory && !sub);
+  const ratio = searchParams.get("ratio");
 
   usePageView({ username, categorySlug, subcategorySlug: sub?.slug });
   const { items, loading } = usePortfolioItems({
     categorySlug,
     subcategorySlug: sub?.slug,
+    aspectRatio: ratio,
   });
 
   if (!username || !category || invalidSubcategory) return <Navigate to="/404" replace />;
+
+  const setRatio = (value: string | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set("ratio", value);
+    else next.delete("ratio");
+    setSearchParams(next, { replace: true });
+  };
 
   const home = username === "caleb" ? "/" : `/${username}`;
   const logoVariant = username === "faith" ? "faith" : username === "daniel" ? "daniel" : "caleb";
@@ -55,7 +65,30 @@ const CategoryPage = () => {
             </div>
             <h1 className="max-w-4xl font-display text-4xl font-bold leading-tight md:text-7xl">{title}</h1>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">{blurb}</p>
-            <p className="mt-8 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+
+            <div className="mt-8 flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setRatio(null)}
+                className={`rounded-full border px-4 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors ${
+                  !ratio ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:border-primary/50"
+                }`}
+              >
+                All orientations
+              </button>
+              {ASPECT_RATIOS.map((r) => (
+                <button
+                  key={r.slug}
+                  onClick={() => setRatio(r.slug)}
+                  className={`rounded-full border px-4 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors ${
+                    ratio === r.slug ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:border-primary/50"
+                  }`}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+
+            <p className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
               {loading ? "Loading films" : `${items.length} ${items.length === 1 ? "film" : "films"}`}
             </p>
           </motion.div>

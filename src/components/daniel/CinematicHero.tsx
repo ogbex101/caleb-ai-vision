@@ -1,7 +1,8 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion";
 import { ArrowDown, Play, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { PortfolioItem } from "@/hooks/usePortfolioItems";
+import TiltCard from "@/components/daniel/TiltCard";
 
 interface Props {
   heroUrl: string;
@@ -14,7 +15,8 @@ const WORDS = ["Daniel", "Studio"];
 
 /**
  * Cinematic hero: a rotating montage of the studio's own AI films behind
- * kinetic type, with a floating strip of live clips along the bottom.
+ * kinetic type, with a floating strip of live clips along the bottom. The
+ * media plate and the type drift at different rates on scroll for depth.
  */
 const CinematicHero = ({ heroUrl, isImage, items, tagline }: Props) => {
   const clips = useMemo(
@@ -22,6 +24,12 @@ const CinematicHero = ({ heroUrl, isImage, items, tagline }: Props) => {
     [items],
   );
   const [active, setActive] = useState(0);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] });
+  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
+  const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "10%"]);
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
 
   useEffect(() => {
     if (clips.length < 2) return;
@@ -32,9 +40,9 @@ const CinematicHero = ({ heroUrl, isImage, items, tagline }: Props) => {
   const montage = clips[active];
 
   return (
-    <section className="relative flex min-h-[100svh] flex-col justify-end overflow-hidden film-grain px-6 pb-14 pt-32">
-      {/* Base hero media */}
-      <div className="absolute inset-0">
+    <section ref={sectionRef} className="relative flex min-h-[100svh] flex-col justify-end overflow-hidden film-grain px-6 pb-14 pt-32">
+      {/* Base hero media — parallaxes at a different rate than the scroll */}
+      <motion.div style={{ y: bgY }} className="absolute inset-0">
         {isImage ? (
           <motion.img
             initial={{ scale: 1.12 }}
@@ -82,10 +90,10 @@ const CinematicHero = ({ heroUrl, isImage, items, tagline }: Props) => {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/45 to-background/25" />
         <div
           className="absolute inset-0"
-          style={{ background: "radial-gradient(ellipse at 30% 40%, hsl(276 95% 60% / 0.22), transparent 60%)" }}
+          style={{ background: "radial-gradient(ellipse at 30% 40%, hsl(43 78% 53% / 0.18), transparent 60%)" }}
         />
         <div className="scanlines absolute inset-0 opacity-[0.05]" />
-      </div>
+      </motion.div>
 
       <motion.div
         className="pointer-events-none absolute -left-24 top-1/4 h-[420px] w-[420px] rounded-full bg-primary/25 blur-[150px]"
@@ -98,7 +106,7 @@ const CinematicHero = ({ heroUrl, isImage, items, tagline }: Props) => {
         transition={{ duration: 11, repeat: Infinity }}
       />
 
-      <div className="relative mx-auto w-full max-w-7xl">
+      <motion.div style={{ y: contentY, opacity: contentOpacity }} className="relative mx-auto w-full max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
@@ -163,23 +171,24 @@ const CinematicHero = ({ heroUrl, isImage, items, tagline }: Props) => {
             className="mt-12 flex gap-3 overflow-x-auto pb-2"
           >
             {clips.map((clip, i) => (
-              <button
-                key={clip.id}
-                onClick={() => setActive(i)}
-                aria-label={`Preview ${clip.title}`}
-                className={`relative h-16 w-28 shrink-0 overflow-hidden rounded-lg border transition-all ${
-                  i === active ? "border-primary shadow-[var(--shadow-glow)]" : "border-border/70 opacity-60 hover:opacity-100"
-                }`}
-              >
-                <video src={clip.video_url!} muted playsInline preload="metadata" className="h-full w-full object-cover" />
-                <span className="absolute inset-x-0 bottom-0 truncate bg-background/70 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-foreground/80">
-                  {clip.title}
-                </span>
-              </button>
+              <TiltCard key={clip.id} strength={12} className="shrink-0">
+                <button
+                  onClick={() => setActive(i)}
+                  aria-label={`Preview ${clip.title}`}
+                  className={`relative h-16 w-28 overflow-hidden rounded-lg border transition-all ${
+                    i === active ? "border-primary shadow-[var(--shadow-glow)]" : "border-border/70 opacity-60 hover:opacity-100"
+                  }`}
+                >
+                  <video src={clip.video_url!} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+                  <span className="absolute inset-x-0 bottom-0 truncate bg-background/70 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-foreground/80">
+                    {clip.title}
+                  </span>
+                </button>
+              </TiltCard>
             ))}
           </motion.div>
         )}
-      </div>
+      </motion.div>
 
       <motion.div
         animate={{ y: [0, 9, 0] }}

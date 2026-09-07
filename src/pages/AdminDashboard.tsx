@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2, BarChart3, Eye, Copy, Users, Image as ImageIcon, Play } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
-import { CATEGORIES, getCategory } from "@/lib/categories";
+import { ASPECT_RATIOS, CATEGORIES, getCategory } from "@/lib/categories";
 import { compressVideo, shouldCompress } from "@/lib/compressVideo";
 
 type SectionName = "analytics" | "hero" | "about" | "techStack" | "portfolio" | "layouts" | "testimonials" | "messages" | "settings";
@@ -196,7 +196,7 @@ const AdminDashboard = () => {
       category: item.category, featured: item.featured, video_url: item.video_url,
       full_video_url: item.full_video_url, sort_order: item.sort_order,
       category_slug: item.category_slug || null, subcategory_slug: item.subcategory_slug || null,
-      preview_seconds: item.preview_seconds || 30,
+      preview_seconds: item.preview_seconds || 30, aspect_ratio: item.aspect_ratio || "16:9",
     }).eq("id", item.id);
     toast({ title: error ? "Failed to save" : `${item.title} updated!`, variant: error ? "destructive" : "default" });
   };
@@ -704,6 +704,7 @@ const AdminDashboard = () => {
                     <SelectField label="Top-level category" value={item.category_slug || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], category_slug: v, subcategory_slug: "", category: getCategory(v)?.label || "" }; setPortfolio(u); }} options={CATEGORIES.map((category) => ({ value: category.slug, label: category.label }))} placeholder="Choose a category" />
                     <SelectField label="Sub-category" value={item.subcategory_slug || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], subcategory_slug: v }; setPortfolio(u); }} options={(getCategory(item.category_slug)?.subcategories || []).map((sub) => ({ value: sub.slug, label: sub.label }))} placeholder={item.category_slug ? "All sub-categories" : "Choose category first"} disabled={!item.category_slug} />
                     <SelectField label="Preview length" value={String(item.preview_seconds || 30)} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], preview_seconds: Number(v) }; setPortfolio(u); }} options={[{ value: "30", label: "30 seconds" }, { value: "60", label: "60 seconds" }]} />
+                    <SelectField label="Aspect ratio" value={item.aspect_ratio || "16:9"} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], aspect_ratio: v }; setPortfolio(u); }} options={ASPECT_RATIOS.map((r) => ({ value: r.slug, label: r.label }))} />
                     <InputField label="Sort Order" value={String(item.sort_order || 0)} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], sort_order: parseInt(v) || 0 }; setPortfolio(u); }} />
                   </div>
                   <InputField label="Description" value={item.description || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], description: v }; setPortfolio(u); }} textarea />

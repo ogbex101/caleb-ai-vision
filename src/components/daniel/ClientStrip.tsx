@@ -1,4 +1,5 @@
 import type { PortfolioItem } from "@/hooks/usePortfolioItems";
+import Reveal from "@/components/daniel/Reveal";
 
 interface Props {
   items: PortfolioItem[];
@@ -15,7 +16,7 @@ const ClientStrip = ({ items }: Props) => {
 
   return (
     <div className="border-y border-border px-6 py-10">
-      <div className="mx-auto max-w-6xl">
+      <Reveal className="mx-auto max-w-6xl">
         <p className="mb-6 text-center text-xs uppercase tracking-[0.3em] text-muted-foreground">Trusted by</p>
         <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
           {clients.map((client) => (
@@ -24,7 +25,7 @@ const ClientStrip = ({ items }: Props) => {
             </span>
           ))}
         </div>
-      </div>
+      </Reveal>
     </div>
   );
 };

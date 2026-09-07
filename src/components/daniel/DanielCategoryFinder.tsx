@@ -2,9 +2,10 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Copy, Film } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { CATEGORIES, categoryPath, categoryUrl } from "@/lib/categories";
+import { ASPECT_RATIOS, CATEGORIES, categoryPath, categoryUrl } from "@/lib/categories";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import Reveal from "@/components/daniel/Reveal";
 
 /**
  * Chip-based category picker instead of the dropdown card used on the
@@ -14,12 +15,13 @@ import { useToast } from "@/hooks/use-toast";
 const DanielCategoryFinder = () => {
   const [cat, setCat] = useState("");
   const [sub, setSub] = useState("");
+  const [ratio, setRatio] = useState("");
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const subs = useMemo(() => CATEGORIES.find((c) => c.slug === cat)?.subcategories ?? [], [cat]);
-  const link = cat ? categoryUrl("daniel", cat, sub || null) : "";
+  const link = cat ? categoryUrl("daniel", cat, sub || null, ratio || null) : "";
 
   const copy = async () => {
     if (!link) return;
@@ -38,12 +40,12 @@ const DanielCategoryFinder = () => {
   return (
     <section id="search-category" className="px-6 py-24">
       <div className="mx-auto max-w-5xl">
-        <div className="mb-10 flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-primary">
+        <Reveal className="mb-10 flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-primary">
           <Film className="h-3.5 w-3.5" /> Reel finder
-        </div>
+        </Reveal>
 
         <div className="space-y-8">
-          <div>
+          <Reveal delay={0.05}>
             <p className="mb-3 text-sm text-muted-foreground">Discipline</p>
             <div className="flex flex-wrap gap-2">
               {CATEGORIES.map((c) => (
@@ -58,11 +60,11 @@ const DanielCategoryFinder = () => {
                 </button>
               ))}
             </div>
-          </div>
+          </Reveal>
 
           {cat && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <p className="mb-3 text-sm text-muted-foreground">Format</p>
+              <p className="mb-3 text-sm text-muted-foreground">Niche</p>
               <div className="flex flex-wrap gap-2">
                 {subs.map((s) => (
                   <button
@@ -73,6 +75,33 @@ const DanielCategoryFinder = () => {
                     }`}
                   >
                     {s.label}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {cat && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+              <p className="mb-3 text-sm text-muted-foreground">Orientation</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setRatio("")}
+                  className={`rounded-full border px-5 py-2.5 text-sm font-medium transition-all ${
+                    !ratio ? "border-gold bg-gold text-gold-foreground" : "border-border text-foreground/80 hover:border-gold/50"
+                  }`}
+                >
+                  Any
+                </button>
+                {ASPECT_RATIOS.map((r) => (
+                  <button
+                    key={r.slug}
+                    onClick={() => setRatio(r.slug)}
+                    className={`rounded-full border px-5 py-2.5 text-sm font-medium transition-all ${
+                      ratio === r.slug ? "border-gold bg-gold text-gold-foreground" : "border-border text-foreground/80 hover:border-gold/50"
+                    }`}
+                  >
+                    {r.label}
                   </button>
                 ))}
               </div>
@@ -93,7 +122,10 @@ const DanielCategoryFinder = () => {
                 <button onClick={copy} className="flex items-center gap-2 rounded-full bg-gold px-5 py-2.5 text-sm font-display font-semibold text-gold-foreground transition-transform hover:scale-105">
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? "Copied" : "Copy"}
                 </button>
-                <button onClick={() => navigate(categoryPath("daniel", cat, sub || null))} className="rounded-full border border-border px-5 py-2.5 text-sm font-medium hover:border-primary/60">
+                <button
+                  onClick={() => navigate(`${categoryPath("daniel", cat, sub || null)}${ratio ? `?ratio=${encodeURIComponent(ratio)}` : ""}`)}
+                  className="rounded-full border border-border px-5 py-2.5 text-sm font-medium hover:border-primary/60"
+                >
                   Preview
                 </button>
               </div>

@@ -9,6 +9,7 @@ export interface PortfolioItem {
   category?: string | null;
   category_slug?: string | null;
   subcategory_slug?: string | null;
+  aspect_ratio?: string | null;
   video_url?: string | null;
   full_video_url?: string | null;
   thumbnail_url?: string | null;
@@ -21,13 +22,14 @@ interface Filter {
   featuredOnly?: boolean;
   categorySlug?: string | null;
   subcategorySlug?: string | null;
+  aspectRatio?: string | null;
 }
 
 /**
  * Shared portfolio data source — every user layout reads from this same table,
  * so uploads apply everywhere automatically.
  */
-export const usePortfolioItems = ({ featuredOnly, categorySlug, subcategorySlug }: Filter = {}) => {
+export const usePortfolioItems = ({ featuredOnly, categorySlug, subcategorySlug, aspectRatio }: Filter = {}) => {
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,6 +41,7 @@ export const usePortfolioItems = ({ featuredOnly, categorySlug, subcategorySlug 
       if (featuredOnly) q = q.eq("featured", true);
       if (categorySlug) q = q.eq("category_slug", categorySlug);
       if (subcategorySlug) q = q.eq("subcategory_slug", subcategorySlug);
+      if (aspectRatio) q = q.eq("aspect_ratio", aspectRatio);
       const { data } = await q;
       if (!cancelled) {
         setItems((data as PortfolioItem[]) ?? []);
@@ -47,7 +50,7 @@ export const usePortfolioItems = ({ featuredOnly, categorySlug, subcategorySlug 
     };
     run();
     return () => { cancelled = true; };
-  }, [featuredOnly, categorySlug, subcategorySlug]);
+  }, [featuredOnly, categorySlug, subcategorySlug, aspectRatio]);
 
   return { items, loading };
 };

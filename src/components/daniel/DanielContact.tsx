@@ -3,6 +3,7 @@ import { Clapperboard, Clock, Mail, MapPin, Send } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import Reveal from "@/components/daniel/Reveal";
 
 /**
  * Styled as a "call sheet": a dark slate panel of production details next
@@ -39,7 +40,7 @@ const DanielContact = () => {
     <section className="px-6 py-28">
       <div className="mx-auto max-w-6xl overflow-hidden rounded-3xl border border-gold/40">
         <div className="grid md:grid-cols-[1fr_1.3fr]">
-          <div className="relative bg-card p-10 md:p-12">
+          <Reveal direction="left" className="relative bg-card p-10 md:p-12">
             <div className="gold-divider absolute inset-x-0 top-0 h-px md:hidden" />
             <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-gold">
               <Clapperboard className="h-4 w-4" /> Production sheet
@@ -63,7 +64,7 @@ const DanielContact = () => {
                 </div>
               ))}
             </div>
-          </div>
+          </Reveal>
 
           <motion.form
             initial={{ opacity: 0, x: 30 }}

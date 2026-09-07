@@ -7,6 +7,7 @@ import CinematicHero from "@/components/daniel/CinematicHero";
 import DanielCategoryFinder from "@/components/daniel/DanielCategoryFinder";
 import DanielContact from "@/components/daniel/DanielContact";
 import DanielFAQ from "@/components/daniel/DanielFAQ";
+import DanielProcess from "@/components/daniel/DanielProcess";
 import DanielTestimonials from "@/components/daniel/DanielTestimonials";
 import ReelDivider from "@/components/daniel/ReelDivider";
 import ShowreelStage from "@/components/daniel/ShowreelStage";
@@ -60,6 +61,10 @@ const Daniel = () => {
             {loading ? <p className="py-16 text-center text-muted-foreground">Loading showreel…</p> : <ShowreelStage items={items} />}
           </div>
         </section>
+
+        <ReelDivider />
+
+        <DanielProcess />
 
         <ReelDivider />
 

@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
+import Reveal from "@/components/daniel/Reveal";
 
 const FAQS = [
   {
@@ -31,7 +32,7 @@ const DanielFAQ = () => {
   return (
     <section className="px-6 py-28">
       <div className="mx-auto grid max-w-6xl gap-12 md:grid-cols-[minmax(0,280px)_1fr]">
-        <div>
+        <Reveal direction="left">
           <span className="text-xs uppercase tracking-[0.3em] text-primary">Studio FAQ</span>
           <h2 className="mt-4 font-display text-4xl font-bold md:text-5xl">
             Before you <span className="gradient-text-gold">brief us.</span>
@@ -39,9 +40,9 @@ const DanielFAQ = () => {
           <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
             Process, ownership and turnaround, the essentials before a project starts.
           </p>
-        </div>
+        </Reveal>
 
-        <div>
+        <Reveal direction="right" delay={0.1}>
           {FAQS.map((faq, i) => {
             const isOpen = open === i;
             return (
@@ -77,7 +78,7 @@ const DanielFAQ = () => {
               </div>
             );
           })}
-        </div>
+        </Reveal>
       </div>
     </section>
   );

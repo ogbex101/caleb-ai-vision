@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Copy, Link2, Search, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { CATEGORIES, categoryPath, categoryUrl, getCategory } from "@/lib/categories";
+import { ASPECT_RATIOS, CATEGORIES, categoryPath, categoryUrl, getCategory } from "@/lib/categories";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,12 +14,13 @@ interface Props {
 const CategoryLinkBuilder = ({ username, compact = false }: Props) => {
   const [cat, setCat] = useState("");
   const [sub, setSub] = useState("");
+  const [ratio, setRatio] = useState("");
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const subs = useMemo(() => getCategory(cat)?.subcategories ?? [], [cat]);
-  const link = cat ? categoryUrl(username, cat, sub || null) : "";
+  const link = cat ? categoryUrl(username, cat, sub || null, ratio || null) : "";
 
   const copy = async () => {
     if (!link) return;
@@ -70,7 +71,7 @@ const CategoryLinkBuilder = ({ username, compact = false }: Props) => {
             <Search className="w-4 h-4 text-primary" /> Category link builder
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-3 gap-4">
             <div>
               <label className="text-xs text-muted-foreground mb-1.5 block tracking-wide uppercase">Step 1: Category</label>
               <select
@@ -85,16 +86,30 @@ const CategoryLinkBuilder = ({ username, compact = false }: Props) => {
               </select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block tracking-wide uppercase">Step 2: Sub-category</label>
+              <label className="text-xs text-muted-foreground mb-1.5 block tracking-wide uppercase">Step 2: Niche</label>
               <select
                 value={sub}
                 onChange={(e) => setSub(e.target.value)}
                 disabled={!cat}
                 className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground text-sm focus:outline-none focus:border-primary/60 transition-colors disabled:opacity-50"
               >
-                <option value="">{cat ? "All of this category" : "Choose a category first"}</option>
+                <option value="">{cat ? "All niches" : "Choose a category first"}</option>
                 {subs.map((s) => (
                   <option key={s.slug} value={s.slug}>{s.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block tracking-wide uppercase">Step 3: Orientation</label>
+              <select
+                value={ratio}
+                onChange={(e) => setRatio(e.target.value)}
+                disabled={!cat}
+                className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground text-sm focus:outline-none focus:border-primary/60 transition-colors disabled:opacity-50"
+              >
+                <option value="">Any orientation</option>
+                {ASPECT_RATIOS.map((r) => (
+                  <option key={r.slug} value={r.slug}>{r.label}</option>
                 ))}
               </select>
             </div>
@@ -117,7 +132,7 @@ const CategoryLinkBuilder = ({ username, compact = false }: Props) => {
                 </button>
               </div>
               <button
-                onClick={() => navigate(categoryPath(username, cat, sub || null))}
+                onClick={() => navigate(`${categoryPath(username, cat, sub || null)}${ratio ? `?ratio=${encodeURIComponent(ratio)}` : ""}`)}
                 className="inline-flex items-center gap-2 text-sm text-primary hover:gap-3 transition-all"
               >
                 Preview this page <ArrowRight className="w-4 h-4" />
