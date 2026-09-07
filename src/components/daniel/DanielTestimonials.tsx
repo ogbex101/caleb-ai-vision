@@ -26,12 +26,12 @@ const DanielTestimonials = () => {
 
   useEffect(() => {
     let cancelled = false;
-    supabase
+    void (supabase as any)
       .from("testimonials")
       .select("*")
       .eq("username", "daniel")
       .order("sort_order")
-      .then(({ data }) => {
+      .then(({ data }: { data: any[] | null }) => {
         if (cancelled) return;
         if (data) {
           setItems(
