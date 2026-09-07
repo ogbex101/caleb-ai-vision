@@ -232,7 +232,7 @@ const AdminDashboard = () => {
       const title = rawFile.name.replace(/\.[^/.]+$/, "");
 
       const { data: newRow, error: insErr } = await supabase
-        .from("portfolio_items")
+        .from("portfolio_items" as any)
         .insert({ title, description: "", client_name: "", category: getCategory(uploadCat)?.label || "", category_slug: uploadCat || null, subcategory_slug: uploadSub || null, category_tags: uploadCat ? [{ category: uploadCat, subcategory: uploadSub || null }] : [], preview_seconds: 30, sort_order: ++baseOrder })
         .select()
         .single();
