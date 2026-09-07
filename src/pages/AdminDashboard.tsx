@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2, BarChart3, Eye, Copy, Users, Image as ImageIcon, Play } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
-import { ASPECT_RATIOS, CATEGORIES, MAX_CATEGORY_TAGS, getCategory, readTags, type CategoryTag } from "@/lib/categories";
+import { ASPECT_RATIOS, CATEGORIES, MAX_CATEGORY_TAGS, getCategory, readTags, tagsMatch, type CategoryTag } from "@/lib/categories";
 import CategoryTagsEditor from "@/components/admin/CategoryTagsEditor";
 import { compressVideo, shouldCompress } from "@/lib/compressVideo";
 
@@ -233,7 +233,7 @@ const AdminDashboard = () => {
 
       const { data: newRow, error: insErr } = await supabase
         .from("portfolio_items")
-        .insert({ title, description: "", client_name: "", category: getCategory(uploadCat)?.label || "", category_slug: uploadCat || null, subcategory_slug: uploadSub || null, preview_seconds: 30, sort_order: ++baseOrder })
+        .insert({ title, description: "", client_name: "", category: getCategory(uploadCat)?.label || "", category_slug: uploadCat || null, subcategory_slug: uploadSub || null, category_tags: uploadCat ? [{ category: uploadCat, subcategory: uploadSub || null }] : [], preview_seconds: 30, sort_order: ++baseOrder })
         .select()
         .single();
       if (insErr || !newRow) {
@@ -307,10 +307,12 @@ const AdminDashboard = () => {
     if (addingProject) return;
     setAddingProject(true);
     try {
-      const { data, error } = await supabase.from("portfolio_items").insert({
+      const { data, error } = await (supabase as any).from("portfolio_items").insert({
         title: "New Project", description: "Project description", client_name: "Client",
         category: getCategory(uploadCat)?.label || "", category_slug: uploadCat || null,
-        subcategory_slug: uploadSub || null, preview_seconds: 30, sort_order: portfolio.length + 1,
+        subcategory_slug: uploadSub || null,
+        category_tags: uploadCat ? [{ category: uploadCat, subcategory: uploadSub || null }] : [],
+        preview_seconds: 30, sort_order: portfolio.length + 1,
       }).select().single();
       if (error || !data) {
         toast({ title: "Failed to add project", description: error?.message || "Please try again.", variant: "destructive" });
@@ -319,7 +321,7 @@ const AdminDashboard = () => {
       setPortfolio((prev) => [...prev, data]);
       // A list filter that doesn't match the new item's category would hide it,
       // making the button look like it did nothing — so clear it here.
-      if (filterCat && data.category_slug !== filterCat) setFilterCat("");
+      if (filterCat && !tagsMatch(readTags(data), filterCat)) setFilterCat("");
       toast({ title: "Project added", description: "Scroll down to fill in its details." });
       setHighlightedId(data.id);
       setTimeout(() => {
@@ -682,7 +684,7 @@ const AdminDashboard = () => {
               </div>
 
               {portfolio.map((item, i) => (
-                filterCat && item.category_slug !== filterCat ? null : (
+                filterCat && !tagsMatch(readTags(item), filterCat) ? null : (
                 <div
                   key={item.id}
                   id={`portfolio-item-${item.id}`}
