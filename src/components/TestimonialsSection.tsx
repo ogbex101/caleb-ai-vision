@@ -136,16 +136,16 @@ const TestimonialsSection = ({ username = "caleb" }: Props) => {
 
   useEffect(() => {
     let cancelled = false;
-    supabase
+    void (supabase
       .from("testimonials")
       .select("*")
       .eq("username", username)
-      .order("sort_order")
+      .order("sort_order") as unknown as Promise<{ data: any[] | null }>)
       .then(({ data }) => {
         if (cancelled) return;
         if (data && data.length > 0) {
           setTestimonials(
-            data.map((row) => ({
+            data.map((row: any) => ({
               id: row.id,
               name: row.client_name,
               title: row.client_title || "",
