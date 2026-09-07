@@ -105,3 +105,48 @@ export const parseCategoryParam = (param?: string) =>
 
 export const USERNAMES = ["caleb", "faith", "daniel"] as const;
 export type Username = (typeof USERNAMES)[number];
+
+export interface CategoryTag {
+  category: string;
+  subcategory?: string | null;
+}
+
+/**
+ * A video can carry up to 5 category tags. Older rows only have the single
+ * `category_slug` / `subcategory_slug` pair, so this normalises both shapes
+ * into one list every consumer can rely on.
+ */
+export const MAX_CATEGORY_TAGS = 5;
+
+export const readTags = (item: {
+  category_tags?: unknown;
+  category_slug?: string | null;
+  subcategory_slug?: string | null;
+}): CategoryTag[] => {
+  const raw = Array.isArray(item?.category_tags) ? (item.category_tags as any[]) : [];
+  const tags = raw
+    .filter((t) => t && typeof t === "object" && typeof t.category === "string" && t.category)
+    .map((t) => ({ category: t.category as string, subcategory: (t.subcategory as string) || null }));
+  if (tags.length === 0 && item?.category_slug) {
+    tags.push({ category: item.category_slug, subcategory: item.subcategory_slug || null });
+  }
+  return tags.slice(0, MAX_CATEGORY_TAGS);
+};
+
+export const tagsMatch = (
+  tags: CategoryTag[],
+  categorySlug?: string | null,
+  subcategorySlug?: string | null,
+) => {
+  if (!categorySlug) return true;
+  return tags.some(
+    (t) => t.category === categorySlug && (!subcategorySlug || t.subcategory === subcategorySlug),
+  );
+};
+
+export const tagLabel = (tag: CategoryTag) => {
+  const cat = getCategory(tag.category);
+  const sub = getSubCategory(tag.category, tag.subcategory);
+  if (!cat) return tag.category;
+  return sub ? `${cat.label} / ${sub.label}` : cat.label;
+};
