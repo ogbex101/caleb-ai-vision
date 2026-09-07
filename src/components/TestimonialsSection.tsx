@@ -126,8 +126,12 @@ const TestimonialCard = ({ testimonial, index }: { testimonial: Testimonial; ind
   );
 };
 
-const TestimonialsSection = () => {
-  const [testimonials, setTestimonials] = useState<Testimonial[]>(fallbackTestimonials);
+interface Props {
+  username?: string;
+}
+
+const TestimonialsSection = ({ username = "caleb" }: Props) => {
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(username === "caleb" ? fallbackTestimonials : []);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -135,6 +139,7 @@ const TestimonialsSection = () => {
     supabase
       .from("testimonials")
       .select("*")
+      .eq("username", username)
       .order("sort_order")
       .then(({ data }) => {
         if (cancelled) return;
@@ -148,13 +153,15 @@ const TestimonialsSection = () => {
               rating: row.rating ?? 5,
             })),
           );
+        } else if (username !== "caleb") {
+          setTestimonials([]);
         }
         setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [username]);
 
   if (!loading && testimonials.length === 0) return null;
 

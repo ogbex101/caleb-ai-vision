@@ -207,7 +207,7 @@ const Faith = () => {
         <PortfolioSection showCertificate={false} />
       </section>
       <section id="testimonials">
-        <TestimonialsSection />
+        <TestimonialsSection username="faith" />
       </section>
       <FAQSection name="Faith" />
       <section id="contact">

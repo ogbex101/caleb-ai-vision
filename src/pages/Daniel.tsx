@@ -2,11 +2,13 @@ import { motion } from "framer-motion";
 import { Clapperboard } from "lucide-react";
 import { Link } from "react-router-dom";
 import BrandLogo from "@/components/BrandLogo";
-import CategoryLinkBuilder from "@/components/CategoryLinkBuilder";
-import ContactSection from "@/components/ContactSection";
-import FAQSection from "@/components/FAQSection";
-import TestimonialsSection from "@/components/TestimonialsSection";
+import ClientStrip from "@/components/daniel/ClientStrip";
 import CinematicHero from "@/components/daniel/CinematicHero";
+import DanielCategoryFinder from "@/components/daniel/DanielCategoryFinder";
+import DanielContact from "@/components/daniel/DanielContact";
+import DanielFAQ from "@/components/daniel/DanielFAQ";
+import DanielTestimonials from "@/components/daniel/DanielTestimonials";
+import ReelDivider from "@/components/daniel/ReelDivider";
 import ShowreelStage from "@/components/daniel/ShowreelStage";
 import StudioMarquee from "@/components/daniel/StudioMarquee";
 import StudioStats from "@/components/daniel/StudioStats";
@@ -40,7 +42,11 @@ const Daniel = () => {
 
         <StudioMarquee />
 
+        <ClientStrip items={items} />
+
         <StudioStats />
+
+        <ReelDivider />
 
         <section id="reel" className="px-6 py-24">
           <div className="mx-auto max-w-7xl">
@@ -55,10 +61,12 @@ const Daniel = () => {
           </div>
         </section>
 
-        <CategoryLinkBuilder username="daniel" />
-        <TestimonialsSection />
-        <FAQSection name="Daniel" />
-        <section id="contact"><ContactSection /></section>
+        <ReelDivider />
+
+        <DanielCategoryFinder />
+        <DanielTestimonials />
+        <DanielFAQ />
+        <section id="contact"><DanielContact /></section>
       </main>
 
       <footer className="border-t border-border px-6 py-10">

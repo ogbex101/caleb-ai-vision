@@ -23,7 +23,7 @@ const Index = () => {
         <PortfolioSection />
       </section>
       <section id="testimonials">
-        <TestimonialsSection />
+        <TestimonialsSection username="caleb" />
       </section>
       <FAQSection name="Caleb" />
       <section id="contact">

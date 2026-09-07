@@ -288,6 +288,7 @@ export type Database = {
           id: string
           rating: number | null
           sort_order: number
+          username: string
         }
         Insert: {
           client_avatar?: string | null
@@ -298,6 +299,7 @@ export type Database = {
           id?: string
           rating?: number | null
           sort_order?: number
+          username?: string
         }
         Update: {
           client_avatar?: string | null
@@ -308,6 +310,7 @@ export type Database = {
           id?: string
           rating?: number | null
           sort_order?: number
+          username?: string
         }
         Relationships: []
       }

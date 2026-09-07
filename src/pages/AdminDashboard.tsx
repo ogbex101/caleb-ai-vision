@@ -5,10 +5,17 @@ import { useToast } from "@/hooks/use-toast";
 import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2, BarChart3, Eye, Copy, Users, Image as ImageIcon, Play } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { CATEGORIES, getCategory } from "@/lib/categories";
+import { compressVideo, shouldCompress } from "@/lib/compressVideo";
 
 type SectionName = "analytics" | "hero" | "about" | "techStack" | "portfolio" | "layouts" | "testimonials" | "messages" | "settings";
 
+// Raw file the admin can pick, anything larger than this is compressed
+// client-side (in the browser) before it ever reaches Supabase storage.
+const MAX_SOURCE_VIDEO_SIZE_MB = 1024;
+// Anything under this uploads as-is, no need to wait on a transcode.
 const MAX_VIDEO_SIZE_MB = 50;
+
+type CompressionStatus = { key: string; progress: number } | null;
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -35,11 +42,15 @@ const AdminDashboard = () => {
   const [heroUploading, setHeroUploading] = useState<string | null>(null);
   const [addingProject, setAddingProject] = useState(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [compressing, setCompressing] = useState<CompressionStatus>(null);
 
   // Upload target category (applied to bulk uploads + new projects) and list filter
   const [uploadCat, setUploadCat] = useState("");
   const [uploadSub, setUploadSub] = useState("");
   const [filterCat, setFilterCat] = useState("");
+
+  // Testimonials are scoped per profile; this picks which profile's tab is showing
+  const [testimonialProfile, setTestimonialProfile] = useState<"caleb" | "faith" | "daniel">("caleb");
 
   // Settings
   const [newEmail, setNewEmail] = useState("");
@@ -123,13 +134,26 @@ const AdminDashboard = () => {
   };
 
   // Portfolio video upload
-  const handleVideoUpload = async (index: number, file: File) => {
-    if (file.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
-      toast({ title: `Video must be under ${MAX_VIDEO_SIZE_MB}MB`, variant: "destructive" });
+  const handleVideoUpload = async (index: number, rawFile: File) => {
+    if (rawFile.size > MAX_SOURCE_VIDEO_SIZE_MB * 1024 * 1024) {
+      toast({ title: `Video must be under ${MAX_SOURCE_VIDEO_SIZE_MB}MB`, variant: "destructive" });
       return;
     }
 
     setUploadingIndex(index);
+    let file = rawFile;
+    if (shouldCompress(rawFile)) {
+      const key = `portfolio-${index}`;
+      setCompressing({ key, progress: 0 });
+      try {
+        file = await compressVideo(rawFile, (ratio) => setCompressing({ key, progress: ratio }));
+      } catch (err) {
+        toast({ title: "Compression failed, uploading the original file instead", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
+      } finally {
+        setCompressing(null);
+      }
+    }
+
     const item = portfolio[index];
     const fileExt = file.name.split('.').pop();
     const filePath = `${item.id}.${fileExt}`;
@@ -181,8 +205,8 @@ const AdminDashboard = () => {
   const handleBulkUpload = async (files: FileList) => {
     const arr = Array.from(files);
     const valid = arr.filter((f) => {
-      if (f.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
-        toast({ title: `Skipped ${f.name}: over ${MAX_VIDEO_SIZE_MB}MB`, variant: "destructive" });
+      if (f.size > MAX_SOURCE_VIDEO_SIZE_MB * 1024 * 1024) {
+        toast({ title: `Skipped ${f.name}: over ${MAX_SOURCE_VIDEO_SIZE_MB}MB`, variant: "destructive" });
         return false;
       }
       return true;
@@ -194,8 +218,8 @@ const AdminDashboard = () => {
     let baseOrder = portfolio.length;
 
     for (let i = 0; i < valid.length; i++) {
-      const file = valid[i];
-      const title = file.name.replace(/\.[^/.]+$/, "");
+      const rawFile = valid[i];
+      const title = rawFile.name.replace(/\.[^/.]+$/, "");
 
       const { data: newRow, error: insErr } = await supabase
         .from("portfolio_items")
@@ -203,9 +227,22 @@ const AdminDashboard = () => {
         .select()
         .single();
       if (insErr || !newRow) {
-        toast({ title: `Failed to create row for ${file.name}`, variant: "destructive" });
+        toast({ title: `Failed to create row for ${rawFile.name}`, variant: "destructive" });
         setBulkUploading({ done: i + 1, total: valid.length });
         continue;
+      }
+
+      let file = rawFile;
+      if (shouldCompress(rawFile)) {
+        const key = `bulk-${i}`;
+        setCompressing({ key, progress: 0 });
+        try {
+          file = await compressVideo(rawFile, (ratio) => setCompressing({ key, progress: ratio }));
+        } catch (err) {
+          toast({ title: `Compression failed for ${rawFile.name}, uploading the original`, variant: "destructive" });
+        } finally {
+          setCompressing(null);
+        }
       }
 
       const ext = file.name.split(".").pop();
@@ -215,7 +252,7 @@ const AdminDashboard = () => {
         .upload(filePath, file, { cacheControl: "3600", upsert: true, contentType: file.type });
 
       if (upErr) {
-        toast({ title: `Upload failed for ${file.name}: ${upErr.message}`, variant: "destructive" });
+        toast({ title: `Upload failed for ${rawFile.name}: ${upErr.message}`, variant: "destructive" });
         setBulkUploading({ done: i + 1, total: valid.length });
         continue;
       }
@@ -309,13 +346,27 @@ const AdminDashboard = () => {
     toast({ title: error ? "Failed to add layout" : "Layout created", variant: error ? "destructive" : "default" });
   };
 
-  const uploadHeroMedia = async (index: number, file: File) => {
-    if (file.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
-      toast({ title: `Hero media must be under ${MAX_VIDEO_SIZE_MB}MB`, variant: "destructive" });
+  const uploadHeroMedia = async (index: number, rawFile: File) => {
+    if (rawFile.size > MAX_SOURCE_VIDEO_SIZE_MB * 1024 * 1024) {
+      toast({ title: `Hero media must be under ${MAX_SOURCE_VIDEO_SIZE_MB}MB`, variant: "destructive" });
       return;
     }
     const layout = layouts[index];
     setHeroUploading(layout.id);
+
+    let file = rawFile;
+    if (shouldCompress(rawFile)) {
+      const key = `hero-${layout.id}`;
+      setCompressing({ key, progress: 0 });
+      try {
+        file = await compressVideo(rawFile, (ratio) => setCompressing({ key, progress: ratio }));
+      } catch (err) {
+        toast({ title: "Compression failed, uploading the original file instead", variant: "destructive" });
+      } finally {
+        setCompressing(null);
+      }
+    }
+
     const ext = file.name.split(".").pop() || (file.type.startsWith("image/") ? "jpg" : "mp4");
     const path = `heroes/${layout.username}-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("portfolio-videos").upload(path, file, { contentType: file.type, upsert: true });
@@ -336,6 +387,7 @@ const AdminDashboard = () => {
   const saveTestimonial = async (item: any) => {
     const { error } = await supabase.from("testimonials").update({
       client_name: item.client_name, client_title: item.client_title, content: item.content, rating: item.rating,
+      username: item.username,
     }).eq("id", item.id);
     toast({ title: error ? "Failed to save" : "Testimonial updated!", variant: error ? "destructive" : "default" });
   };
@@ -348,7 +400,9 @@ const AdminDashboard = () => {
 
   const addTestimonial = async () => {
     const { data, error } = await supabase.from("testimonials").insert({
-      client_name: "New Client", client_title: "Title", content: "Testimonial text", sort_order: testimonials.length + 1,
+      client_name: "New Client", client_title: "Title", content: "Testimonial text",
+      sort_order: testimonials.filter((t) => t.username === testimonialProfile).length + 1,
+      username: testimonialProfile,
     }).select().single();
     if (error || !data) {
       toast({ title: "Failed to add testimonial", description: error?.message, variant: "destructive" });
@@ -558,7 +612,9 @@ const AdminDashboard = () => {
                   <label className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg font-medium cursor-pointer transition-all ${
                     bulkUploading ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-accent text-accent-foreground hover:bg-accent/80'
                   }`}>
-                    {bulkUploading ? (
+                    {compressing?.key.startsWith("bulk-") ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Compressing {Math.round(compressing.progress * 100)}%</>
+                    ) : bulkUploading ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Uploading {bulkUploading.done}/{bulkUploading.total}</>
                     ) : (
                       <><Upload className="w-4 h-4" /> Bulk Upload</>
@@ -667,7 +723,9 @@ const AdminDashboard = () => {
                             ? 'bg-muted text-muted-foreground cursor-not-allowed'
                             : 'bg-accent text-accent-foreground hover:bg-accent/80'
                         }`}>
-                          {uploadingIndex === i ? (
+                          {compressing?.key === `portfolio-${i}` ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /> Compressing {Math.round(compressing.progress * 100)}%</>
+                          ) : uploadingIndex === i ? (
                             <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</>
                           ) : (
                             <><Upload className="w-4 h-4" /> Upload Video</>
@@ -684,7 +742,7 @@ const AdminDashboard = () => {
                             }}
                           />
                         </label>
-                        <span className="text-xs text-muted-foreground">Max {MAX_VIDEO_SIZE_MB}MB • MP4, WebM, MOV</span>
+                        <span className="text-xs text-muted-foreground">Up to {MAX_SOURCE_VIDEO_SIZE_MB}MB, MP4/WebM/MOV. Large or 4K files are compressed for the web automatically.</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <div className="flex-1 h-px bg-border" />
@@ -744,7 +802,13 @@ const AdminDashboard = () => {
                   )}
                   <div className="flex flex-wrap gap-3">
                     <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground">
-                      {heroUploading === layout.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Replace Hero
+                      {compressing?.key === `hero-${layout.id}` ? (
+                        <><Loader2 className="h-4 w-4 animate-spin" /> Compressing {Math.round(compressing.progress * 100)}%</>
+                      ) : heroUploading === layout.id ? (
+                        <><Loader2 className="h-4 w-4 animate-spin" /> Uploading...</>
+                      ) : (
+                        <><Upload className="h-4 w-4" /> Replace Hero</>
+                      )}
                       <input type="file" accept="video/*,image/*" className="hidden" disabled={heroUploading === layout.id} onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadHeroMedia(i, file); e.target.value = ""; }} />
                     </label>
                     <SaveButton onClick={() => saveLayout(layout)} />
@@ -757,24 +821,54 @@ const AdminDashboard = () => {
           {/* Testimonials */}
           {activeSection === "testimonials" && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-display font-bold">Testimonials</h2>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-display font-bold">Testimonials</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Each profile has its own reviews now, they no longer share one pool.</p>
+                </div>
                 <button onClick={addTestimonial} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm rounded-lg font-medium">
                   <Plus className="w-4 h-4" /> Add Testimonial
                 </button>
               </div>
+
+              <div className="flex gap-2">
+                {(["caleb", "faith", "daniel"] as const).map((profile) => (
+                  <button
+                    key={profile}
+                    onClick={() => setTestimonialProfile(profile)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
+                      testimonialProfile === profile ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {profile}
+                  </button>
+                ))}
+              </div>
+
+              {testimonials.filter((t) => t.username === testimonialProfile).length === 0 && (
+                <p className="text-sm text-muted-foreground">No testimonials for {testimonialProfile} yet. Add one above.</p>
+              )}
+
               {testimonials.map((item, i) => (
+                item.username !== testimonialProfile ? null : (
                 <div key={item.id} className="p-6 rounded-xl bg-card border border-border space-y-4">
                   <div className="grid sm:grid-cols-2 gap-4">
                     <InputField label="Client Name" value={item.client_name} onChange={(v) => { const u = [...testimonials]; u[i] = { ...u[i], client_name: v }; setTestimonials(u); }} />
                     <InputField label="Client Title" value={item.client_title || ""} onChange={(v) => { const u = [...testimonials]; u[i] = { ...u[i], client_title: v }; setTestimonials(u); }} />
                   </div>
                   <InputField label="Content" value={item.content} onChange={(v) => { const u = [...testimonials]; u[i] = { ...u[i], content: v }; setTestimonials(u); }} textarea />
+                  <SelectField
+                    label="Profile"
+                    value={item.username}
+                    onChange={(v) => { const u = [...testimonials]; u[i] = { ...u[i], username: v }; setTestimonials(u); }}
+                    options={[{ value: "caleb", label: "Caleb" }, { value: "faith", label: "Faith" }, { value: "daniel", label: "Daniel" }]}
+                  />
                   <div className="flex gap-2">
                     <SaveButton onClick={() => saveTestimonial(testimonials[i])} />
                     <DeleteButton onClick={() => deleteTestimonial(item.id)} />
                   </div>
                 </div>
+                )
               ))}
             </div>
           )}
