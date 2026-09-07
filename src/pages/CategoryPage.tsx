@@ -32,7 +32,7 @@ const CategoryPage = () => {
 
   const home = username === "caleb" ? "/" : `/${username}`;
   const logoVariant = username === "faith" ? "faith" : username === "daniel" ? "daniel" : "caleb";
-  const title = sub ? `${category.label} — ${sub.label}` : category.label;
+  const title = sub ? `${category.label} / ${sub.label}` : category.label;
   const blurb = sub?.blurb ?? category.blurb;
 
   return (

@@ -26,7 +26,7 @@ const CategoryLinkBuilder = ({ username, compact = false }: Props) => {
     try {
       await navigator.clipboard.writeText(link);
     } catch {
-      toast({ title: "Couldn't copy automatically — select the link and copy it.", variant: "destructive" });
+      toast({ title: "Couldn't copy automatically. Select the link and copy it.", variant: "destructive" });
       return;
     }
     setCopied(true);
@@ -49,7 +49,7 @@ const CategoryLinkBuilder = ({ username, compact = false }: Props) => {
             viewport={{ once: true }}
             className="text-center mb-10"
           >
-            <span className="text-primary text-xs font-medium tracking-[0.3em] uppercase">— Search Category</span>
+            <span className="text-primary text-xs font-medium tracking-[0.3em] uppercase">Search Category</span>
             <h2 className="text-3xl md:text-5xl font-display font-bold mt-4 tracking-tight">
               Jump Straight To <span className="gradient-text">The Right Reel</span>
             </h2>
@@ -72,7 +72,7 @@ const CategoryLinkBuilder = ({ username, compact = false }: Props) => {
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block tracking-wide uppercase">Step 1 — Category</label>
+              <label className="text-xs text-muted-foreground mb-1.5 block tracking-wide uppercase">Step 1: Category</label>
               <select
                 value={cat}
                 onChange={(e) => { setCat(e.target.value); setSub(""); }}
@@ -85,7 +85,7 @@ const CategoryLinkBuilder = ({ username, compact = false }: Props) => {
               </select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block tracking-wide uppercase">Step 2 — Sub-category</label>
+              <label className="text-xs text-muted-foreground mb-1.5 block tracking-wide uppercase">Step 2: Sub-category</label>
               <select
                 value={sub}
                 onChange={(e) => setSub(e.target.value)}

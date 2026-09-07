@@ -1,26 +1,40 @@
 import { motion, useMotionValue, useTransform } from "framer-motion";
 import { Star, Quote } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
-const testimonials = [
+interface Testimonial {
+  id: string;
+  name: string;
+  title: string;
+  content: string;
+  rating: number;
+}
+
+const fallbackTestimonials: Testimonial[] = [
   {
+    id: "fallback-1",
     name: "Sarah Mitchell",
     title: "CEO, TechVault Inc.",
-    content: "Caleb didn't just edit our video—he reimagined our entire brand story. The AI-enhanced visuals were unlike anything we'd ever seen. Our launch video hit 2M views in the first week.",
+    content: "Caleb didn't just edit our video, he reimagined our entire brand story. The AI-enhanced visuals were unlike anything we'd ever seen. Our launch video hit 2M views in the first week.",
     rating: 5,
   },
   {
+    id: "fallback-2",
     name: "Marcus Chen",
     title: "Director, Indie Film Collective",
     content: "Working with Caleb is like working with someone from the future. He sees possibilities in AI that most editors haven't even dreamed of yet. Absolute game-changer for our film.",
     rating: 5,
   },
   {
+    id: "fallback-3",
     name: "Amara Obi",
     title: "Marketing Director, HyperX Gaming",
     content: "The turnaround time was insane, and the quality was cinema-grade. Caleb's use of AI tools cut our production timeline in half without sacrificing an ounce of creativity.",
     rating: 5,
   },
   {
+    id: "fallback-4",
     name: "James Rodriguez",
     title: "Creative Director, Urban Culture Magazine",
     content: "Caleb has this rare ability to make technology feel human. Every frame of our documentary felt intentional and emotionally resonant. He's our go-to editor now.",
@@ -28,7 +42,11 @@ const testimonials = [
   },
 ];
 
-const TestimonialCard = ({ testimonial, index }: { testimonial: typeof testimonials[number]; index: number }) => {
+/**
+ * Each card owns its own motion values (mx/my below), so hovering or
+ * tilting one card can never bleed into a neighbour's transform or state.
+ */
+const TestimonialCard = ({ testimonial, index }: { testimonial: Testimonial; index: number }) => {
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
   const rotateX = useTransform(my, [-0.5, 0.5], [8, -8]);
@@ -72,7 +90,7 @@ const TestimonialCard = ({ testimonial, index }: { testimonial: typeof testimoni
       </motion.div>
 
       <div className="relative flex gap-1 mb-5" style={{ transform: "translateZ(30px)" }}>
-        {Array.from({ length: testimonial.rating }).map((_, i) => (
+        {Array.from({ length: testimonial.rating || 5 }).map((_, i) => (
           <motion.span
             key={i}
             initial={{ opacity: 0, scale: 0.4, rotate: -45 }}
@@ -109,6 +127,37 @@ const TestimonialCard = ({ testimonial, index }: { testimonial: typeof testimoni
 };
 
 const TestimonialsSection = () => {
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(fallbackTestimonials);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("testimonials")
+      .select("*")
+      .order("sort_order")
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data && data.length > 0) {
+          setTestimonials(
+            data.map((row) => ({
+              id: row.id,
+              name: row.client_name,
+              title: row.client_title || "",
+              content: row.content,
+              rating: row.rating ?? 5,
+            })),
+          );
+        }
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!loading && testimonials.length === 0) return null;
+
   return (
     <section className="py-28 px-6 relative bg-card/40 overflow-hidden">
       <div className="absolute inset-0 bg-grid opacity-10" />
@@ -131,7 +180,7 @@ const TestimonialsSection = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <span className="text-primary text-xs font-medium tracking-[0.3em] uppercase">— Testimonials</span>
+          <span className="text-primary text-xs font-medium tracking-[0.3em] uppercase">Testimonials</span>
           <h2 className="text-4xl md:text-6xl font-display font-bold mt-4 tracking-tight">
             What Clients <span className="gradient-text">Say</span>
           </h2>
@@ -139,7 +188,7 @@ const TestimonialsSection = () => {
 
         <div className="grid md:grid-cols-2 gap-6" style={{ perspective: "1400px" }}>
           {testimonials.map((testimonial, index) => (
-            <TestimonialCard key={testimonial.name} testimonial={testimonial} index={index} />
+            <TestimonialCard key={testimonial.id} testimonial={testimonial} index={index} />
           ))}
         </div>
       </div>

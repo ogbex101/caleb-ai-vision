@@ -1,12 +1,15 @@
 import { motion } from "framer-motion";
-import { ArrowDown, Clapperboard, Play, Sparkles } from "lucide-react";
+import { Clapperboard } from "lucide-react";
 import { Link } from "react-router-dom";
 import BrandLogo from "@/components/BrandLogo";
 import CategoryLinkBuilder from "@/components/CategoryLinkBuilder";
 import ContactSection from "@/components/ContactSection";
 import FAQSection from "@/components/FAQSection";
-import PortfolioGrid from "@/components/PortfolioGrid";
 import TestimonialsSection from "@/components/TestimonialsSection";
+import CinematicHero from "@/components/daniel/CinematicHero";
+import ShowreelStage from "@/components/daniel/ShowreelStage";
+import StudioMarquee from "@/components/daniel/StudioMarquee";
+import StudioStats from "@/components/daniel/StudioStats";
 import { usePageView } from "@/hooks/usePageView";
 import { usePortfolioItems, useSiteLayout } from "@/hooks/usePortfolioItems";
 
@@ -33,40 +36,11 @@ const Daniel = () => {
       </nav>
 
       <main>
-        <section className="relative flex min-h-[92vh] items-end overflow-hidden px-6 pb-20 pt-28">
-          <div className="absolute inset-0">
-            {isImage ? (
-              <motion.img initial={{ scale: 1.08 }} animate={{ scale: 1 }} transition={{ duration: 2 }} src={heroUrl} alt="Daniel Studio showreel" className="h-full w-full object-cover" />
-            ) : (
-              <motion.video initial={{ scale: 1.08, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 2 }} src={heroUrl} autoPlay muted loop playsInline className="h-full w-full object-cover" />
-            )}
-            <div className="absolute inset-0 bg-background/35" />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-background/30" />
-          </div>
+        <CinematicHero heroUrl={heroUrl} isImage={isImage} items={items} tagline={layout?.tagline} />
 
-          <div className="relative mx-auto w-full max-w-7xl">
-            <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mb-7 inline-flex items-center gap-2 border border-primary/40 bg-background/35 px-3 py-2 text-xs uppercase tracking-[0.24em] text-primary backdrop-blur-md">
-              <Sparkles className="h-4 w-4" /> AI video studio
-            </motion.div>
-            <h1 className="max-w-5xl font-display text-6xl font-bold leading-[0.94] md:text-8xl lg:text-9xl">
-              Daniel <span className="gradient-text">Studio</span>
-            </h1>
-            <p className="mt-7 max-w-2xl text-lg leading-relaxed text-foreground/80 md:text-xl">
-              Motion-first films built where cinematic craft, sharp editing and generative AI meet.
-            </p>
-            <div className="mt-10 flex flex-wrap gap-4">
-              <a href="#reel" className="inline-flex items-center gap-2 bg-primary px-6 py-3 font-display font-semibold text-primary-foreground transition-transform hover:scale-105">
-                <Play className="h-4 w-4" /> Enter the showreel
-              </a>
-              <a href="#search-category" className="inline-flex items-center gap-2 border border-border bg-background/40 px-6 py-3 font-display font-semibold backdrop-blur-md transition-colors hover:border-primary/60">
-                Build a client link
-              </a>
-            </div>
-          </div>
-          <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 2, repeat: Infinity }} className="absolute bottom-7 right-7 text-primary">
-            <ArrowDown className="h-5 w-5" />
-          </motion.div>
-        </section>
+        <StudioMarquee />
+
+        <StudioStats />
 
         <section id="reel" className="px-6 py-24">
           <div className="mx-auto max-w-7xl">
@@ -77,7 +51,7 @@ const Daniel = () => {
               </div>
               <Link to="/daniel/category-ai-video" className="inline-flex items-center gap-2 text-sm font-medium text-primary">Explore AI work <Clapperboard className="h-4 w-4" /></Link>
             </motion.div>
-            {loading ? <p className="py-16 text-center text-muted-foreground">Loading showreel…</p> : <PortfolioGrid items={items} />}
+            {loading ? <p className="py-16 text-center text-muted-foreground">Loading showreel…</p> : <ShowreelStage items={items} />}
           </div>
         </section>
 

@@ -10,11 +10,11 @@ interface FAQ {
 const defaultFaqs: FAQ[] = [
   {
     q: "What exactly does an AI video editor do differently?",
-    a: "Traditional editing is manual frame work. I pair that craft with generative and assistive AI — shot generation, upscaling, relighting, motion synthesis, voice work and automated rough cuts — so the concept-to-final loop collapses from weeks into days without losing directorial control.",
+    a: "Traditional editing is manual frame work. I pair that craft with generative and assistive AI (shot generation, upscaling, relighting, motion synthesis, voice work and automated rough cuts) so the concept-to-final loop collapses from weeks into days without losing directorial control.",
   },
   {
     q: "How fast is a typical turnaround?",
-    a: "Short-form social edits land in 24–72 hours. Brand films and commercials usually run 5–10 working days including one revision round. Rush timelines are possible — flag it in the brief and the pipeline gets structured around it.",
+    a: "Short-form social edits land in 24–72 hours. Brand films and commercials usually run 5–10 working days including one revision round. Rush timelines are possible; flag it in the brief and the pipeline gets structured around it.",
   },
   {
     q: "Do I own the final footage and AI-generated assets?",
@@ -22,7 +22,7 @@ const defaultFaqs: FAQ[] = [
   },
   {
     q: "What do you need from me to start?",
-    a: "A short brief: goal, audience, platform, reference links, and any raw footage or brand assets. If you don't have footage, that's fine — a large share of this work is generated and composited entirely from scratch.",
+    a: "A short brief: goal, audience, platform, reference links, and any raw footage or brand assets. If you don't have footage, that's fine: a large share of this work is generated and composited entirely from scratch.",
   },
   {
     q: "How many revisions are included?",
@@ -30,7 +30,7 @@ const defaultFaqs: FAQ[] = [
   },
   {
     q: "Can you handle long-form content?",
-    a: "Absolutely — documentaries, YouTube series, event recaps and course content. Long masters are delivered through a private drive link, while the on-site portfolio previews the highlight cut.",
+    a: "Absolutely: documentaries, YouTube series, event recaps and course content. Long masters are delivered through a private drive link, while the on-site portfolio previews the highlight cut.",
   },
 ];
 
@@ -62,7 +62,7 @@ const FAQSection = ({ name = "me" }: Props) => {
             Questions, <span className="gradient-text">Answered</span>
           </h2>
           <p className="text-muted-foreground mt-5 max-w-xl mx-auto leading-relaxed">
-            Everything worth knowing before working with {name} — process, ownership, timelines and the tech behind it.
+            Everything worth knowing before working with {name}: process, ownership, timelines and the tech behind it.
           </p>
         </motion.div>
 

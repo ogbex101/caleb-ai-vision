@@ -178,7 +178,7 @@ const PortfolioCarousel = ({ items, autoAdvanceMs = 10000 }: Props) => {
                   </span>
                 )}
                 <span className="text-[10px] font-mono text-muted-foreground tracking-widest">
-                  {String(index + 1).padStart(2, "0")} — {String(total).padStart(2, "0")}
+                  {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
                 </span>
               </div>
               <h3 className="font-display font-bold text-3xl md:text-5xl lg:text-6xl text-foreground leading-[1.05] tracking-tight max-w-3xl">

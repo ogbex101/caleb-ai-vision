@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2, BarChart3, Eye, Copy, Users, Image as ImageIcon } from "lucide-react";
+import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2, BarChart3, Eye, Copy, Users, Image as ImageIcon, Play } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { CATEGORIES, getCategory } from "@/lib/categories";
 
@@ -27,11 +27,14 @@ const AdminDashboard = () => {
   const [layouts, setLayouts] = useState<any[]>([]);
   const [pageViews, setPageViews] = useState<any[]>([]);
   const [linkCopies, setLinkCopies] = useState<any[]>([]);
+  const [videoClicks, setVideoClicks] = useState<any[]>([]);
 
   // Upload states
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [bulkUploading, setBulkUploading] = useState<{ done: number; total: number } | null>(null);
   const [heroUploading, setHeroUploading] = useState<string | null>(null);
+  const [addingProject, setAddingProject] = useState(false);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
   // Upload target category (applied to bulk uploads + new projects) and list filter
   const [uploadCat, setUploadCat] = useState("");
@@ -57,7 +60,7 @@ const AdminDashboard = () => {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [h, a, t, p, te, m, l, pv, lc] = await Promise.all([
+    const [h, a, t, p, te, m, l, pv, lc, vc] = await Promise.all([
       supabase.from("hero_section").select("*").limit(1).single(),
       supabase.from("about_section").select("*").limit(1).single(),
       supabase.from("tech_stack").select("*").order("sort_order"),
@@ -67,6 +70,7 @@ const AdminDashboard = () => {
       supabase.from("site_layouts").select("*").order("created_at"),
       supabase.from("page_views").select("*").order("created_at", { ascending: false }).limit(5000),
       supabase.from("link_copies").select("*").order("created_at", { ascending: false }).limit(5000),
+      supabase.from("video_clicks").select("*").order("created_at", { ascending: false }).limit(5000),
     ]);
     if (h.data) setHero(h.data);
     if (a.data) setAbout(a.data);
@@ -77,6 +81,7 @@ const AdminDashboard = () => {
     if (l.data) setLayouts(l.data);
     if (pv.data) setPageViews(pv.data);
     if (lc.data) setLinkCopies(lc.data);
+    if (vc.data) setVideoClicks(vc.data);
     setLoading(false);
   };
 
@@ -108,8 +113,13 @@ const AdminDashboard = () => {
   };
 
   const addTechItem = async () => {
-    const { data } = await supabase.from("tech_stack").insert({ name: "New Tool", description: "Description", sort_order: techStack.length + 1 }).select().single();
-    if (data) setTechStack([...techStack, data]);
+    const { data, error } = await supabase.from("tech_stack").insert({ name: "New Tool", description: "Description", sort_order: techStack.length + 1 }).select().single();
+    if (error || !data) {
+      toast({ title: "Failed to add tool", description: error?.message, variant: "destructive" });
+      return;
+    }
+    setTechStack([...techStack, data]);
+    toast({ title: "Tool added" });
   };
 
   // Portfolio video upload
@@ -247,12 +257,31 @@ const AdminDashboard = () => {
   };
 
   const addPortfolioItem = async () => {
-    const { data } = await supabase.from("portfolio_items").insert({
-      title: "New Project", description: "Project description", client_name: "Client",
-      category: getCategory(uploadCat)?.label || "", category_slug: uploadCat || null,
-      subcategory_slug: uploadSub || null, preview_seconds: 30, sort_order: portfolio.length + 1,
-    }).select().single();
-    if (data) setPortfolio([...portfolio, data]);
+    if (addingProject) return;
+    setAddingProject(true);
+    try {
+      const { data, error } = await supabase.from("portfolio_items").insert({
+        title: "New Project", description: "Project description", client_name: "Client",
+        category: getCategory(uploadCat)?.label || "", category_slug: uploadCat || null,
+        subcategory_slug: uploadSub || null, preview_seconds: 30, sort_order: portfolio.length + 1,
+      }).select().single();
+      if (error || !data) {
+        toast({ title: "Failed to add project", description: error?.message || "Please try again.", variant: "destructive" });
+        return;
+      }
+      setPortfolio((prev) => [...prev, data]);
+      // A list filter that doesn't match the new item's category would hide it,
+      // making the button look like it did nothing — so clear it here.
+      if (filterCat && data.category_slug !== filterCat) setFilterCat("");
+      toast({ title: "Project added", description: "Scroll down to fill in its details." });
+      setHighlightedId(data.id);
+      setTimeout(() => {
+        document.getElementById(`portfolio-item-${data.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+      setTimeout(() => setHighlightedId((current) => (current === data.id ? null : current)), 3000);
+    } finally {
+      setAddingProject(false);
+    }
   };
 
   const saveLayout = async (layout: any) => {
@@ -318,10 +347,15 @@ const AdminDashboard = () => {
   };
 
   const addTestimonial = async () => {
-    const { data } = await supabase.from("testimonials").insert({
+    const { data, error } = await supabase.from("testimonials").insert({
       client_name: "New Client", client_title: "Title", content: "Testimonial text", sort_order: testimonials.length + 1,
     }).select().single();
-    if (data) setTestimonials([...testimonials, data]);
+    if (error || !data) {
+      toast({ title: "Failed to add testimonial", description: error?.message, variant: "destructive" });
+      return;
+    }
+    setTestimonials([...testimonials, data]);
+    toast({ title: "Testimonial added" });
   };
 
   const deleteMessage = async (id: string) => {
@@ -369,6 +403,9 @@ const AdminDashboard = () => {
   const layoutViews = countBy(pageViews, "username");
   const sourceViews = countBy(pageViews, "source");
   const copiedCategories = countBy(linkCopies, "category_slug");
+  const mostClickedVideos = countBy(videoClicks.filter((click) => click.title), "title");
+  const clicksByLayout = countBy(videoClicks, "username");
+  const topVideo = mostClickedVideos[0];
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading...</div>;
 
@@ -427,12 +464,24 @@ const AdminDashboard = () => {
                 <h2 className="text-2xl font-display font-bold">Portfolio Analytics</h2>
                 <p className="mt-1 text-sm text-muted-foreground">Views and link activity recorded across every user layout.</p>
               </div>
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-4">
                 <StatCard icon={Eye} label="Total views" value={pageViews.length} />
                 <StatCard icon={Users} label="Unique visitors" value={uniqueVisitors} />
                 <StatCard icon={Copy} label="Links copied" value={linkCopies.length} />
+                <StatCard icon={Play} label="Video plays" value={videoClicks.length} />
               </div>
+              {topVideo && (
+                <div className="rounded-xl border border-primary/40 bg-primary/5 p-6">
+                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-primary">
+                    <Play className="h-3.5 w-3.5" /> Most-clicked video
+                  </div>
+                  <p className="mt-2 font-display text-2xl font-bold">{topVideo[0]}</p>
+                  <p className="text-sm text-muted-foreground">{topVideo[1]} {topVideo[1] === 1 ? "play" : "plays"} recorded</p>
+                </div>
+              )}
               <div className="grid gap-6 lg:grid-cols-2">
+                <AnalyticsList title="Most-clicked videos" rows={mostClickedVideos} empty="No video plays recorded yet." rawLabels />
+                <AnalyticsList title="Video plays by user layout" rows={clicksByLayout} empty="No video plays recorded yet." />
                 <AnalyticsList title="Views by user layout" rows={layoutViews} />
                 <AnalyticsList title="Traffic sources" rows={sourceViews} />
                 <AnalyticsList title="Most-viewed categories" rows={categoryViews} empty="Category pages have not been viewed yet." />
@@ -526,8 +575,13 @@ const AdminDashboard = () => {
                       }}
                     />
                   </label>
-                  <button onClick={addPortfolioItem} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm rounded-lg font-medium">
-                    <Plus className="w-4 h-4" /> Add Project
+                  <button
+                    onClick={addPortfolioItem}
+                    disabled={addingProject}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {addingProject ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                    {addingProject ? "Adding..." : "Add Project"}
                   </button>
                 </div>
               </div>
@@ -557,13 +611,19 @@ const AdminDashboard = () => {
                   placeholder="All categories"
                 />
                 <p className="md:col-span-3 text-xs text-muted-foreground">
-                  New projects and every bulk-uploaded file are tagged with the category above automatically — you can still change any item individually below.
+                  New projects and every bulk-uploaded file are tagged with the category above automatically. You can still change any item individually below.
                 </p>
               </div>
 
               {portfolio.map((item, i) => (
                 filterCat && item.category_slug !== filterCat ? null : (
-                <div key={item.id} className={`p-6 rounded-xl bg-card border transition-colors space-y-4 ${item.featured ? 'border-primary/60' : 'border-border'}`}>
+                <div
+                  key={item.id}
+                  id={`portfolio-item-${item.id}`}
+                  className={`p-6 rounded-xl bg-card border transition-colors space-y-4 ${
+                    highlightedId === item.id ? 'border-primary ring-2 ring-primary/50' : item.featured ? 'border-primary/60' : 'border-border'
+                  }`}
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <button
@@ -808,15 +868,15 @@ const StatCard = ({ icon: Icon, label, value }: { icon: any; label: string; valu
   </div>
 );
 
-const AnalyticsList = ({ title, rows, empty = "No data yet." }: { title: string; rows: [string, number][]; empty?: string }) => (
+const AnalyticsList = ({ title, rows, empty = "No data yet.", rawLabels = false }: { title: string; rows: [string, number][]; empty?: string; rawLabels?: boolean }) => (
   <div className="rounded-xl border border-border bg-card p-6">
     <h3 className="font-display font-semibold">{title}</h3>
     {rows.length === 0 ? <p className="mt-5 text-sm text-muted-foreground">{empty}</p> : (
       <div className="mt-5 space-y-3">
         {rows.slice(0, 6).map(([label, count]) => (
-          <div key={label} className="flex items-center justify-between border-b border-border/60 pb-3 text-sm last:border-0">
-            <span className="capitalize text-muted-foreground">{label.replace(/-/g, " ")}</span>
-            <span className="font-mono text-primary">{count}</span>
+          <div key={label} className="flex items-center justify-between gap-4 border-b border-border/60 pb-3 text-sm last:border-0">
+            <span className={`text-muted-foreground ${rawLabels ? "truncate" : "capitalize"}`}>{rawLabels ? label : label.replace(/-/g, " ")}</span>
+            <span className="shrink-0 font-mono text-primary">{count}</span>
           </div>
         ))}
       </div>
