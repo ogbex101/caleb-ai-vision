@@ -1,73 +1,48 @@
-# Welcome to your Lovable project
+# Caleb's AI Vision Studio
 
-## Project info
+ok i want to build an AI video editing portfolio for one of my client his name is Mr. Caleb Peters
+so the portfolio should have a hero section with a good hero image maybe of an AI video editing stuff but the image should be peak they should be a about me section talking about the client for now no information yet just cook up a very good an touching story
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+they should be tech stack: meaning tools used for AI video editing they are many porpular ones out there am sure you know about them so just add them put the top 8 popular video Editing tools
 
-## How can I edit this code?
+now over to the previous work done for clients just cook something up and there should be a call to action in this section that will lead to another pages full of samples of video editing work
 
-There are several ways of editing your application.
+ther should also be section for what client says about Caleb Peter and as well cook something
+and also a contact section that will allow client to contact caleb peter as for the email ill provide it later but for now lets work on it 
 
-**Use Lovable**
+and also i want to add an admin page where Caleb Peter can Manage is portfolio web 
+he can update any section he wants to either by deleting the content in those section or modifying 
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+so this admin page should be very flexible and easy to use 
 
-Changes made via Lovable will be committed automatically to this repo.
+allow Caleb peters to be able to modify any section in is page
+and also an admin login and dashboard page will be required
+the login details are email: ogbeifundaniel@gmail.com password is Ogbeifun@2005
 
-**Use your preferred IDE**
+and also the admin can also choose to change the login email and password or even add another one
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+so i want the styling of this portfolio to be peak note that the audience will want
+a porfolio that has a lot of Ai video editing or creation images or video all over the place so do justice to that
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+This project was built with [Lovable](https://lovable.dev).
 
-Follow these steps:
+**Live app**: https://caleb-ai-vision.lovable.app
+
+## Build with Lovable
+
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/da34a228-629b-4be9-904a-0035cc0be353).
+
+- **Ship faster**: describe what you want to build and Lovable handles the code.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+
+## Development
+
+Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
+git clone <this-repository-url>
+cd <repository-name>
 npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
