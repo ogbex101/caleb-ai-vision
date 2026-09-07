@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2, BarChart3, Eye, Copy, Users, Image as ImageIcon, Play } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
-import { ASPECT_RATIOS, CATEGORIES, getCategory } from "@/lib/categories";
+import { ASPECT_RATIOS, CATEGORIES, MAX_CATEGORY_TAGS, getCategory, readTags, type CategoryTag } from "@/lib/categories";
+import CategoryTagsEditor from "@/components/admin/CategoryTagsEditor";
 import { compressVideo, shouldCompress } from "@/lib/compressVideo";
 
 type SectionName = "analytics" | "hero" | "about" | "techStack" | "portfolio" | "layouts" | "testimonials" | "messages" | "settings";
