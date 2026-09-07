@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2, BarChart3, Eye, Copy, Users, Image as ImageIcon, Play } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
-import { ASPECT_RATIOS, CATEGORIES, getCategory } from "@/lib/categories";
+import { ASPECT_RATIOS, CATEGORIES, MAX_CATEGORY_TAGS, getCategory, readTags, tagsMatch, type CategoryTag } from "@/lib/categories";
+import CategoryTagsEditor from "@/components/admin/CategoryTagsEditor";
 import { compressVideo, shouldCompress } from "@/lib/compressVideo";
 
 type SectionName = "analytics" | "hero" | "about" | "techStack" | "portfolio" | "layouts" | "testimonials" | "messages" | "settings";
@@ -191,14 +192,23 @@ const AdminDashboard = () => {
   };
 
   const savePortfolioItem = async (item: any) => {
-    const { error } = await supabase.from("portfolio_items").update({
+    const tags: CategoryTag[] = readTags(item).slice(0, MAX_CATEGORY_TAGS);
+    const primary = tags[0];
+    const { error } = await (supabase as any).from("portfolio_items").update({
       title: item.title, description: item.description, client_name: item.client_name,
-      category: item.category, featured: item.featured, video_url: item.video_url,
+      category: getCategory(primary?.category)?.label || item.category || null,
+      featured: item.featured, video_url: item.video_url,
       full_video_url: item.full_video_url, sort_order: item.sort_order,
-      category_slug: item.category_slug || null, subcategory_slug: item.subcategory_slug || null,
+      category_slug: primary?.category || null,
+      subcategory_slug: primary?.subcategory || null,
+      category_tags: tags,
       preview_seconds: item.preview_seconds || 30, aspect_ratio: item.aspect_ratio || "16:9",
     }).eq("id", item.id);
-    toast({ title: error ? "Failed to save" : `${item.title} updated!`, variant: error ? "destructive" : "default" });
+    toast({
+      title: error ? "Failed to save" : `${item.title} updated!`,
+      description: error?.message,
+      variant: error ? "destructive" : "default",
+    });
   };
 
   // Bulk upload: one portfolio item per file, filename becomes the title
@@ -221,9 +231,9 @@ const AdminDashboard = () => {
       const rawFile = valid[i];
       const title = rawFile.name.replace(/\.[^/.]+$/, "");
 
-      const { data: newRow, error: insErr } = await supabase
+      const { data: newRow, error: insErr } = await (supabase as any)
         .from("portfolio_items")
-        .insert({ title, description: "", client_name: "", category: getCategory(uploadCat)?.label || "", category_slug: uploadCat || null, subcategory_slug: uploadSub || null, preview_seconds: 30, sort_order: ++baseOrder })
+        .insert({ title, description: "", client_name: "", category: getCategory(uploadCat)?.label || "", category_slug: uploadCat || null, subcategory_slug: uploadSub || null, category_tags: uploadCat ? [{ category: uploadCat, subcategory: uploadSub || null }] : [], preview_seconds: 30, sort_order: ++baseOrder })
         .select()
         .single();
       if (insErr || !newRow) {
@@ -297,10 +307,12 @@ const AdminDashboard = () => {
     if (addingProject) return;
     setAddingProject(true);
     try {
-      const { data, error } = await supabase.from("portfolio_items").insert({
+      const { data, error } = await (supabase as any).from("portfolio_items").insert({
         title: "New Project", description: "Project description", client_name: "Client",
         category: getCategory(uploadCat)?.label || "", category_slug: uploadCat || null,
-        subcategory_slug: uploadSub || null, preview_seconds: 30, sort_order: portfolio.length + 1,
+        subcategory_slug: uploadSub || null,
+        category_tags: uploadCat ? [{ category: uploadCat, subcategory: uploadSub || null }] : [],
+        preview_seconds: 30, sort_order: portfolio.length + 1,
       }).select().single();
       if (error || !data) {
         toast({ title: "Failed to add project", description: error?.message || "Please try again.", variant: "destructive" });
@@ -309,7 +321,7 @@ const AdminDashboard = () => {
       setPortfolio((prev) => [...prev, data]);
       // A list filter that doesn't match the new item's category would hide it,
       // making the button look like it did nothing — so clear it here.
-      if (filterCat && data.category_slug !== filterCat) setFilterCat("");
+      if (filterCat && !tagsMatch(readTags(data), filterCat)) setFilterCat("");
       toast({ title: "Project added", description: "Scroll down to fill in its details." });
       setHighlightedId(data.id);
       setTimeout(() => {
@@ -672,7 +684,7 @@ const AdminDashboard = () => {
               </div>
 
               {portfolio.map((item, i) => (
-                filterCat && item.category_slug !== filterCat ? null : (
+                filterCat && !tagsMatch(readTags(item), filterCat) ? null : (
                 <div
                   key={item.id}
                   id={`portfolio-item-${item.id}`}
@@ -701,12 +713,11 @@ const AdminDashboard = () => {
                   <div className="grid sm:grid-cols-2 gap-4">
                     <InputField label="Title" value={item.title} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], title: v }; setPortfolio(u); }} />
                     <InputField label="Client" value={item.client_name || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], client_name: v }; setPortfolio(u); }} />
-                    <SelectField label="Top-level category" value={item.category_slug || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], category_slug: v, subcategory_slug: "", category: getCategory(v)?.label || "" }; setPortfolio(u); }} options={CATEGORIES.map((category) => ({ value: category.slug, label: category.label }))} placeholder="Choose a category" />
-                    <SelectField label="Sub-category" value={item.subcategory_slug || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], subcategory_slug: v }; setPortfolio(u); }} options={(getCategory(item.category_slug)?.subcategories || []).map((sub) => ({ value: sub.slug, label: sub.label }))} placeholder={item.category_slug ? "All sub-categories" : "Choose category first"} disabled={!item.category_slug} />
                     <SelectField label="Preview length" value={String(item.preview_seconds || 30)} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], preview_seconds: Number(v) }; setPortfolio(u); }} options={[{ value: "30", label: "30 seconds" }, { value: "60", label: "60 seconds" }]} />
                     <SelectField label="Aspect ratio" value={item.aspect_ratio || "16:9"} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], aspect_ratio: v }; setPortfolio(u); }} options={ASPECT_RATIOS.map((r) => ({ value: r.slug, label: r.label }))} />
                     <InputField label="Sort Order" value={String(item.sort_order || 0)} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], sort_order: parseInt(v) || 0 }; setPortfolio(u); }} />
                   </div>
+                  <CategoryTagsEditor tags={readTags(item)} onChange={(tags) => { const u = [...portfolio]; u[i] = { ...u[i], category_tags: tags, category_slug: tags[0]?.category || null, subcategory_slug: tags[0]?.subcategory || null }; setPortfolio(u); }} />
                   <InputField label="Description" value={item.description || ""} onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], description: v }; setPortfolio(u); }} textarea />
 
                   {/* Video Upload / URL */}

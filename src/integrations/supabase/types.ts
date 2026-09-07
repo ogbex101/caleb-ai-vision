@@ -166,6 +166,7 @@ export type Database = {
           aspect_ratio: string
           category: string | null
           category_slug: string | null
+          category_tags: Json
           client_name: string | null
           created_at: string
           description: string | null
@@ -183,6 +184,7 @@ export type Database = {
           aspect_ratio?: string
           category?: string | null
           category_slug?: string | null
+          category_tags?: Json
           client_name?: string | null
           created_at?: string
           description?: string | null
@@ -200,6 +202,7 @@ export type Database = {
           aspect_ratio?: string
           category?: string | null
           category_slug?: string | null
+          category_tags?: Json
           client_name?: string | null
           created_at?: string
           description?: string | null
@@ -291,7 +294,6 @@ export type Database = {
           id: string
           rating: number | null
           sort_order: number
-          username: string
         }
         Insert: {
           client_avatar?: string | null
@@ -302,7 +304,6 @@ export type Database = {
           id?: string
           rating?: number | null
           sort_order?: number
-          username?: string
         }
         Update: {
           client_avatar?: string | null
@@ -313,7 +314,6 @@ export type Database = {
           id?: string
           rating?: number | null
           sort_order?: number
-          username?: string
         }
         Relationships: []
       }

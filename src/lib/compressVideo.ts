@@ -67,9 +67,10 @@ export const compressVideo = async (file: File, onProgress?: (ratio: number) => 
       outputName,
     ]);
     const data = await ffmpeg.readFile(outputName);
-    const bytes = data as Uint8Array;
+    const bytes = new Uint8Array(data as unknown as ArrayLike<number>);
     const compressedName = file.name.replace(/\.[^/.]+$/, "") + "-web.mp4";
-    return new File([bytes], compressedName, { type: "video/mp4" });
+    const blob = new Blob([bytes.buffer as ArrayBuffer], { type: "video/mp4" });
+    return new File([blob], compressedName, { type: "video/mp4" });
   } finally {
     ffmpeg.off("progress", progressHandler);
     await Promise.all([
