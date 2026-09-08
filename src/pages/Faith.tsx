@@ -8,6 +8,7 @@ import FAQSection from "@/components/FAQSection";
 import ContactSection from "@/components/ContactSection";
 import BrandLogo from "@/components/BrandLogo";
 import CategoryLinkBuilder from "@/components/CategoryLinkBuilder";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { usePageView } from "@/hooks/usePageView";
 
 const FaithNavbar = () => (
@@ -197,6 +198,7 @@ const FaithFooter = () => (
 
 const Faith = () => {
   usePageView({ username: "faith" });
+  usePageMeta("Faith K | Video Editing Portfolio", "Cinematic video editing and AI-assisted reels by Faith K.");
   return (
     <div className="min-h-screen bg-background">
       <FaithNavbar />
