@@ -33,7 +33,7 @@ const CategoryTagsEditor = ({ tags, onChange }: Props) => {
       </div>
 
       {tags.length === 0 && (
-        <p className="mt-3 text-xs text-muted-foreground">No categories yet — this video only shows in the full portfolio.</p>
+        <p className="mt-3 text-xs text-muted-foreground">No categories yet. This video only shows in the full portfolio.</p>
       )}
 
       <div className="mt-4 space-y-3">
