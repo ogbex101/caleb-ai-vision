@@ -13,6 +13,7 @@ import ReelDivider from "@/components/daniel/ReelDivider";
 import ShowreelStage from "@/components/daniel/ShowreelStage";
 import StudioMarquee from "@/components/daniel/StudioMarquee";
 import StudioStats from "@/components/daniel/StudioStats";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { usePageView } from "@/hooks/usePageView";
 import { usePortfolioItems, useSiteLayout } from "@/hooks/usePortfolioItems";
 
@@ -20,6 +21,7 @@ const fallbackHero = "https://videos.pexels.com/video-files/3129957/3129957-hd_1
 
 const Daniel = () => {
   usePageView({ username: "daniel" });
+  usePageMeta("Daniel Studio | AI Film & Video Showreel", "Generative AI films, ads and social edits directed, edited and finished in-house by Daniel Studio.");
   const layout = useSiteLayout("daniel");
   const { items, loading } = usePortfolioItems({ featuredOnly: true });
   const { items: allItems } = usePortfolioItems();

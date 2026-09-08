@@ -4,6 +4,7 @@ import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import BrandLogo from "@/components/BrandLogo";
 import CategoryLinkBuilder from "@/components/CategoryLinkBuilder";
 import PortfolioGrid from "@/components/PortfolioGrid";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { usePageView } from "@/hooks/usePageView";
 import { usePortfolioItems } from "@/hooks/usePortfolioItems";
 import { ASPECT_RATIOS, getCategory, getSubCategory, parseCategoryParam, USERNAMES, type Username } from "@/lib/categories";
@@ -25,6 +26,10 @@ const CategoryPage = () => {
   const ratio = searchParams.get("ratio");
 
   usePageView({ username, categorySlug, subcategorySlug: sub?.slug });
+  usePageMeta(
+    `${sub ? `${category?.label ?? ""} / ${sub.label}` : category?.label ?? "Portfolio"} | ${username ? displayNames[username] : "Portfolio"}`,
+    sub?.blurb ?? category?.blurb,
+  );
   const { items, loading } = usePortfolioItems({
     categorySlug,
     subcategorySlug: sub?.slug,
