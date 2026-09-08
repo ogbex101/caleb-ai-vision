@@ -22,6 +22,7 @@ const Daniel = () => {
   usePageView({ username: "daniel" });
   const layout = useSiteLayout("daniel");
   const { items, loading } = usePortfolioItems({ featuredOnly: true });
+  const { items: allItems } = usePortfolioItems();
   const heroUrl = layout?.hero_media_url || fallbackHero;
   const isImage = layout?.hero_media_type === "image";
 
@@ -45,7 +46,7 @@ const Daniel = () => {
 
         <ClientStrip items={items} />
 
-        <StudioStats />
+        <StudioStats items={allItems} />
 
         <ReelDivider />
 
