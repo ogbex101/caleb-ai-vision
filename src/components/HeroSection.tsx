@@ -3,27 +3,20 @@ import { ArrowDown, Play, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
 
-const HERO_VIDEO =
-  "https://videos.pexels.com/video-files/3129957/3129957-hd_1920_1080_30fps.mp4";
-
 const title = ["Caleb", "Peters"];
 
 const HeroSection = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Cinematic video background */}
+      {/* Cinematic background image (swap for your own hosted video later via Supabase Storage) */}
       <div className="absolute inset-0">
-        <motion.video
+        <motion.img
           initial={{ scale: 1.15, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 2.2, ease: [0.22, 1, 0.36, 1] }}
           className="w-full h-full object-cover"
-          src={HERO_VIDEO}
-          poster={heroBg}
-          autoPlay
-          loop
-          muted
-          playsInline
+          src={heroBg}
+          alt=""
         />
         {/* Layered cinematic overlays */}
         <div className="absolute inset-0 bg-background/60" />
