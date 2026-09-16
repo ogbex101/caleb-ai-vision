@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Clapperboard } from "lucide-react";
 import { Link } from "react-router-dom";
 import BrandLogo from "@/components/BrandLogo";
+import heroBg from "@/assets/hero-bg.jpg";
 import ClientStrip from "@/components/daniel/ClientStrip";
 import CinematicHero from "@/components/daniel/CinematicHero";
 import DanielCategoryFinder from "@/components/daniel/DanielCategoryFinder";
@@ -17,16 +18,15 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { usePageView } from "@/hooks/usePageView";
 import { usePortfolioItems, useSiteLayout } from "@/hooks/usePortfolioItems";
 
-const fallbackHero = "https://videos.pexels.com/video-files/3129957/3129957-hd_1920_1080_30fps.mp4";
-
 const Daniel = () => {
   usePageView({ username: "daniel" });
   usePageMeta("Daniel Studio | AI Film & Video Showreel", "Generative AI films, ads and social edits directed, edited and finished in-house by Daniel Studio.");
   const layout = useSiteLayout("daniel");
   const { items, loading } = usePortfolioItems({ featuredOnly: true });
   const { items: allItems } = usePortfolioItems();
-  const heroUrl = layout?.hero_media_url || fallbackHero;
-  const isImage = layout?.hero_media_type === "image";
+  // Falls back to a local image until you set your own showreel via the admin dashboard
+  const heroUrl = layout?.hero_media_url || heroBg;
+  const isImage = layout?.hero_media_url ? layout?.hero_media_type === "image" : true;
 
   return (
     <div className="daniel-studio min-h-screen bg-background">
