@@ -10,6 +10,7 @@ import BrandLogo from "@/components/BrandLogo";
 import CategoryLinkBuilder from "@/components/CategoryLinkBuilder";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { usePageView } from "@/hooks/usePageView";
+import { useSiteLayout } from "@/hooks/usePortfolioItems";
 
 const FaithNavbar = () => (
   <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
@@ -42,24 +43,39 @@ const FaithNavbar = () => (
   </nav>
 );
 
-const HERO_VIDEO = "https://videos.pexels.com/video-files/3129957/3129957-hd_1920_1080_30fps.mp4";
 const title = ["Faith", "K"];
 
-const FaithHero = () => (
+interface FaithHeroProps {
+  heroUrl: string;
+  isImage: boolean;
+}
+
+const FaithHero = ({ heroUrl, isImage }: FaithHeroProps) => (
   <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
     <div className="absolute inset-0">
-      <motion.video
-        initial={{ scale: 1.15, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 2.2, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full h-full object-cover"
-        src={HERO_VIDEO}
-        poster={heroBg}
-        autoPlay
-        loop
-        muted
-        playsInline
-      />
+      {isImage ? (
+        <motion.img
+          initial={{ scale: 1.15, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 2.2, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full h-full object-cover"
+          src={heroUrl}
+          alt=""
+        />
+      ) : (
+        <motion.video
+          initial={{ scale: 1.15, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 2.2, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full h-full object-cover"
+          src={heroUrl}
+          poster={heroBg}
+          autoPlay
+          loop
+          muted
+          playsInline
+        />
+      )}
       <div className="absolute inset-0 bg-background/60" />
       <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background" />
       <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 30%, hsl(var(--background) / 0.85) 90%)" }} />
@@ -199,10 +215,14 @@ const FaithFooter = () => (
 const Faith = () => {
   usePageView({ username: "faith" });
   usePageMeta("Faith K | Video Editing Portfolio", "Cinematic video editing and AI-assisted reels by Faith K.");
+  const layout = useSiteLayout("faith");
+  // Falls back to a local image until a hero is set via the admin dashboard
+  const heroUrl = layout?.hero_media_url || heroBg;
+  const isImage = layout?.hero_media_url ? layout?.hero_media_type === "image" : true;
   return (
     <div className="min-h-screen bg-background">
       <FaithNavbar />
-      <FaithHero />
+      <FaithHero heroUrl={heroUrl} isImage={isImage} />
       <FaithAbout />
       <CategoryLinkBuilder username="faith" />
       <section id="portfolio">
