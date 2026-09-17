@@ -3,22 +3,37 @@ import { ArrowDown, Play, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PortfolioItem } from "@/hooks/usePortfolioItems";
 
+export interface HeroParallaxLayers {
+  intro?: string | null;
+  back?: string | null;
+  mid?: string | null;
+  front?: string | null;
+}
+
 interface Props {
   heroUrl: string;
   isImage: boolean;
   items: PortfolioItem[];
   tagline?: string | null;
+  parallaxLayers?: HeroParallaxLayers | null;
 }
 
 /**
  * Full-bleed cinematic hero. The film is the subject: it fills the frame at
  * full brightness, with type confined to a disciplined lower band and a
  * right-hand index of the reel, so nothing floats loose over the picture.
+ *
+ * When `parallaxLayers` is supplied, the flat single-clip plate below is
+ * replaced by up to four stacked clips (background, midground, portfolio
+ * montage, foreground) each drifting on scroll at its own speed, plus a
+ * one-time intro clip that plays once on load and fades away. Leaving any
+ * layer unset just skips it, nothing breaks if only one or two are filled in.
  */
-const CinematicHero = ({ heroUrl, isImage, items, tagline }: Props) => {
+const CinematicHero = ({ heroUrl, isImage, items, tagline, parallaxLayers }: Props) => {
   const clips = useMemo(() => items.filter((i) => i.video_url).slice(0, 5), [items]);
   const [active, setActive] = useState(0);
   const [muted, setMuted] = useState(true);
+  const [showIntro, setShowIntro] = useState(Boolean(parallaxLayers?.intro));
   const sectionRef = useRef<HTMLElement>(null);
 
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] });
@@ -26,42 +41,111 @@ const CinematicHero = ({ heroUrl, isImage, items, tagline }: Props) => {
   const mediaScale = useTransform(scrollYProgress, [0, 1], [1, 1.08]);
   const panelOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
 
+  // The type block drifts and softens at its own rate, independent of the
+  // picture behind it, that mismatch in speed is what sells depth rather
+  // than everything moving together like a flat sticker on the video.
+  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "-7%"]);
+  const textBlurPx = useTransform(scrollYProgress, [0, 0.6], [0, 6]);
+  const textFilter = useTransform(textBlurPx, (v) => `blur(${v}px)`);
+
+  // Back layer barely moves, front layer moves the most. Same principle as
+  // the film plate above, just split across three clips instead of one.
+  const backY = useTransform(scrollYProgress, [0, 1], ["0%", "6%"]);
+  const midY = useTransform(scrollYProgress, [0, 1], ["0%", "13%"]);
+  const frontY = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
+
   useEffect(() => {
     if (clips.length < 2) return;
     const t = setInterval(() => setActive((i) => (i + 1) % clips.length), 7000);
     return () => clearInterval(t);
   }, [clips.length]);
 
+  useEffect(() => {
+    if (!parallaxLayers?.intro) return;
+    const t = setTimeout(() => setShowIntro(false), 3400);
+    return () => clearTimeout(t);
+  }, [parallaxLayers?.intro]);
+
   const montage = clips[active];
+  const hasParallax = Boolean(parallaxLayers?.back || parallaxLayers?.mid || parallaxLayers?.front);
 
   return (
     <section ref={sectionRef} className="relative flex min-h-[100svh] flex-col justify-end overflow-hidden film-grain">
       {/* Film plate */}
       <motion.div style={{ y: mediaY, scale: mediaScale }} className="absolute inset-0">
-        {isImage ? (
+        {hasParallax ? (
+          <>
+            {parallaxLayers?.back && (
+              <motion.video
+                style={{ y: backY }}
+                src={parallaxLayers.back}
+                autoPlay muted loop playsInline
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            )}
+            {parallaxLayers?.mid && (
+              <motion.video
+                style={{ y: midY }}
+                src={parallaxLayers.mid}
+                autoPlay muted loop playsInline
+                className="absolute inset-0 h-full w-full object-cover mix-blend-screen opacity-60"
+              />
+            )}
+            {montage?.video_url ? (
+              <AnimatePresence mode="wait">
+                <motion.video
+                  key={montage.id}
+                  src={montage.video_url}
+                  poster={montage.thumbnail_url || undefined}
+                  autoPlay
+                  muted={muted}
+                  loop
+                  playsInline
+                  initial={{ opacity: 0, scale: 1.06 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute inset-0 h-full w-full object-cover opacity-90"
+                />
+              </AnimatePresence>
+            ) : isImage ? (
+              <img src={heroUrl} alt="Daniel Studio showreel still" className="absolute inset-0 h-full w-full object-cover opacity-40" />
+            ) : null}
+            {parallaxLayers?.front && (
+              <motion.video
+                style={{ y: frontY }}
+                src={parallaxLayers.front}
+                autoPlay muted loop playsInline
+                className="absolute inset-0 h-full w-full object-cover mix-blend-screen opacity-50"
+              />
+            )}
+          </>
+        ) : isImage ? (
           <img src={heroUrl} alt="Daniel Studio showreel still" className="h-full w-full object-cover" />
         ) : (
           <video src={heroUrl} autoPlay muted={muted} loop playsInline className="h-full w-full object-cover" />
         )}
 
-        <AnimatePresence mode="wait">
-          {montage?.video_url && (
-            <motion.video
-              key={montage.id}
-              src={montage.video_url}
-              poster={montage.thumbnail_url || undefined}
-              autoPlay
-              muted={muted}
-              loop
-              playsInline
-              initial={{ opacity: 0, scale: 1.06 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          )}
-        </AnimatePresence>
+        {!hasParallax && (
+          <AnimatePresence mode="wait">
+            {montage?.video_url && (
+              <motion.video
+                key={montage.id}
+                src={montage.video_url}
+                poster={montage.thumbnail_url || undefined}
+                autoPlay
+                muted={muted}
+                loop
+                playsInline
+                initial={{ opacity: 0, scale: 1.06 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            )}
+          </AnimatePresence>
+        )}
 
         {/* Only enough shading to seat the type — the picture stays bright */}
         <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-background via-background/75 to-transparent" />
@@ -69,10 +153,26 @@ const CinematicHero = ({ heroUrl, isImage, items, tagline }: Props) => {
         <div className="scanlines absolute inset-0 opacity-[0.04]" />
       </motion.div>
 
+      {/* One-time signature reveal. Plays once on load, then fades for good. */}
+      <AnimatePresence>
+        {showIntro && parallaxLayers?.intro && (
+          <motion.video
+            key="intro"
+            src={parallaxLayers.intro}
+            autoPlay
+            muted
+            playsInline
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+            className="pointer-events-none absolute inset-0 z-10 h-full w-full object-cover"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Letterbox rules */}
       <div className="pointer-events-none absolute inset-x-0 top-24 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
-      <motion.div style={{ opacity: panelOpacity }} className="relative mx-auto w-full max-w-7xl px-6 pb-14">
+      <motion.div style={{ opacity: panelOpacity, y: textY, filter: textFilter }} className="relative mx-auto w-full max-w-7xl px-6 pb-14">
         <div className="grid items-end gap-10 lg:grid-cols-[minmax(0,1fr)_300px]">
           {/* Type block, aligned to one baseline grid */}
           <div>
