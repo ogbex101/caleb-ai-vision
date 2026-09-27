@@ -1,5 +1,6 @@
 import { Plus, X } from "lucide-react";
-import { CATEGORIES, MAX_CATEGORY_TAGS, getCategory, tagLabel, type CategoryTag } from "@/lib/categories";
+import { MAX_CATEGORY_TAGS, getCategory, tagLabel, type CategoryTag } from "@/lib/categories";
+import { useCategories } from "@/hooks/useCategories";
 
 interface Props {
   tags: CategoryTag[];
@@ -8,6 +9,7 @@ interface Props {
 
 /** Lets an admin tag one video with up to 5 category / sub-category pairs. */
 const CategoryTagsEditor = ({ tags, onChange }: Props) => {
+  const categories = useCategories();
   const update = (index: number, next: Partial<CategoryTag>) => {
     const copy = tags.map((t, i) => (i === index ? { ...t, ...next } : t));
     onChange(copy);
@@ -24,7 +26,7 @@ const CategoryTagsEditor = ({ tags, onChange }: Props) => {
         </div>
         <button
           type="button"
-          onClick={() => onChange([...tags, { category: CATEGORIES[0].slug, subcategory: null }])}
+          onClick={() => onChange([...tags, { category: categories[0]?.slug ?? "", subcategory: null }])}
           disabled={tags.length >= MAX_CATEGORY_TAGS}
           className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-40"
         >
@@ -44,7 +46,7 @@ const CategoryTagsEditor = ({ tags, onChange }: Props) => {
               onChange={(e) => update(i, { category: e.target.value, subcategory: null })}
               className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
             >
-              {CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <option key={c.slug} value={c.slug}>{c.label}</option>
               ))}
             </select>

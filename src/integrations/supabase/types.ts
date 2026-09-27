@@ -260,6 +260,39 @@ export type Database = {
         }
         Relationships: []
       }
+      taxonomy: {
+        Row: {
+          blurb: string | null
+          created_at: string
+          id: string
+          label: string
+          parent_category: string | null
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          blurb?: string | null
+          created_at?: string
+          id?: string
+          label: string
+          parent_category?: string | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          blurb?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          parent_category?: string | null
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tech_stack: {
         Row: {
           created_at: string

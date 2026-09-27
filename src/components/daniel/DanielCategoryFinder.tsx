@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Copy, Film } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { ASPECT_RATIOS, CATEGORIES, categoryPath, categoryUrl } from "@/lib/categories";
+import { ASPECT_RATIOS, categoryPath, categoryUrl } from "@/lib/categories";
+import { useCategories } from "@/hooks/useCategories";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Reveal from "@/components/daniel/Reveal";
@@ -13,6 +14,7 @@ import Reveal from "@/components/daniel/Reveal";
  * unique to this profile.
  */
 const DanielCategoryFinder = () => {
+  const categories = useCategories();
   const [cat, setCat] = useState("");
   const [sub, setSub] = useState("");
   const [ratio, setRatio] = useState("");
@@ -20,7 +22,7 @@ const DanielCategoryFinder = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const subs = useMemo(() => CATEGORIES.find((c) => c.slug === cat)?.subcategories ?? [], [cat]);
+  const subs = useMemo(() => categories.find((c) => c.slug === cat)?.subcategories ?? [], [categories, cat]);
   const link = cat ? categoryUrl("daniel", cat, sub || null, ratio || null) : "";
 
   const copy = async () => {
@@ -48,7 +50,7 @@ const DanielCategoryFinder = () => {
           <Reveal delay={0.05}>
             <p className="mb-3 text-sm text-muted-foreground">Discipline</p>
             <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <button
                   key={c.slug}
                   onClick={() => { setCat(c.slug); setSub(""); }}

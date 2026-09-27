@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2, BarChart3, Eye, Copy, Users, Image as ImageIcon, Play } from "lucide-react";
+import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2, BarChart3, Eye, Copy, Users, Image as ImageIcon, Play, Tags } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
-import { ASPECT_RATIOS, CATEGORIES, MAX_CATEGORY_TAGS, getCategory, readTags, tagsMatch, type CategoryTag } from "@/lib/categories";
+import { ASPECT_RATIOS, MAX_CATEGORY_TAGS, getCategory, readTags, tagsMatch, type CategoryTag } from "@/lib/categories";
+import { refreshCategories, useCategories } from "@/hooks/useCategories";
 import CategoryTagsEditor from "@/components/admin/CategoryTagsEditor";
 import { VideoCompressionError, compressVideo, contentTypeFor, shouldCompress } from "@/lib/compressVideo";
 
-type SectionName = "analytics" | "hero" | "about" | "techStack" | "portfolio" | "layouts" | "testimonials" | "messages" | "settings";
+type SectionName = "analytics" | "hero" | "about" | "techStack" | "portfolio" | "categories" | "layouts" | "testimonials" | "messages" | "settings";
 
 // Raw file the admin can pick, anything larger than this is compressed
 // client-side (in the browser) before it ever reaches Supabase storage.
@@ -19,6 +20,24 @@ const MAX_VIDEO_SIZE_MB = 50;
 // (storage.buckets.file_size_limit = 209715200). Anything above this is
 // rejected by the storage API with a bare 400, so check it here and say why.
 const BUCKET_FILE_SIZE_LIMIT_MB = 200;
+
+/** A row of the taxonomy table as the editor holds it. sort_order is a string
+ *  while being typed into its input, hence the union. */
+interface TaxonomyRecord {
+  id: string;
+  parent_category: string | null;
+  slug: string;
+  label: string;
+  blurb: string | null;
+  sort_order: number | string | null;
+}
+
+/** sort_order as a number, whether it is mid-edit as a string or stored. */
+const orderOf = (row: { sort_order?: number | string | null }) => Number(row.sort_order) || 0;
+
+/** URL-safe slug from a label, matching the style of the seeded slugs. */
+const slugify = (value: string) =>
+  value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
 
 /**
  * Why this upload cannot succeed, or null when it can. Checked against the
@@ -77,6 +96,7 @@ const withinRange = <T extends { created_at?: string | null }>(rows: T[], range:
 };
 
 const AdminDashboard = () => {
+  const categories = useCategories();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [session, setSession] = useState<Session | null>(null);
@@ -95,6 +115,9 @@ const AdminDashboard = () => {
   const [linkCopies, setLinkCopies] = useState<any[]>([]);
   const [videoClicks, setVideoClicks] = useState<any[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>("all");
+  const [taxonomy, setTaxonomy] = useState<TaxonomyRecord[]>([]);
+  const [newCategory, setNewCategory] = useState({ label: "", slug: "" });
+  const [newSub, setNewSub] = useState<Record<string, { label: string; slug: string }>>({});
 
   // Upload states
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
@@ -131,7 +154,7 @@ const AdminDashboard = () => {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [h, a, t, p, te, m, l, pv, lc, vc] = await Promise.all([
+    const [h, a, t, p, te, m, l, pv, lc, vc, tx] = await Promise.all([
       supabase.from("hero_section").select("*").limit(1).single(),
       supabase.from("about_section").select("*").limit(1).single(),
       supabase.from("tech_stack").select("*").order("sort_order"),
@@ -142,6 +165,7 @@ const AdminDashboard = () => {
       supabase.from("page_views").select("*").order("created_at", { ascending: false }).limit(5000),
       supabase.from("link_copies").select("*").order("created_at", { ascending: false }).limit(5000),
       supabase.from("video_clicks").select("*").order("created_at", { ascending: false }).limit(5000),
+      supabase.from("taxonomy").select("*").order("sort_order"),
     ]);
     if (h.data) setHero(h.data);
     if (a.data) setAbout(a.data);
@@ -153,6 +177,7 @@ const AdminDashboard = () => {
     if (pv.data) setPageViews(pv.data);
     if (lc.data) setLinkCopies(lc.data);
     if (vc.data) setVideoClicks(vc.data);
+    if (tx.data) setTaxonomy(tx.data as TaxonomyRecord[]);
     setLoading(false);
   };
 
@@ -477,6 +502,96 @@ const AdminDashboard = () => {
     toast({ title: "Hero media uploaded" });
   };
 
+  // --- Taxonomy (categories / sub-categories) -------------------------------
+  //
+  // Slugs are deliberately not editable after creation: portfolio_items rows
+  // reference them by slug in category_tags, so renaming one would silently
+  // orphan every video tagged with it. Labels and blurbs are free to change.
+
+  const reloadTaxonomy = async () => {
+    const { data } = await supabase.from("taxonomy").select("*").order("sort_order");
+    if (data) setTaxonomy(data as TaxonomyRecord[]);
+    await refreshCategories();
+  };
+
+  const saveTaxonomyRow = async (row: TaxonomyRecord) => {
+    if (!row.label?.trim()) {
+      toast({ title: "A label is required", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.from("taxonomy").update({
+      label: row.label.trim(),
+      blurb: row.blurb || null,
+      sort_order: Number(row.sort_order) || 0,
+      updated_at: new Date().toISOString(),
+    }).eq("id", row.id);
+    if (error) {
+      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+      return;
+    }
+    await reloadTaxonomy();
+    toast({ title: "Saved" });
+  };
+
+  const addTaxonomyRow = async (parent: string | null, label: string, slug: string) => {
+    const finalLabel = label.trim();
+    const finalSlug = slugify(slug || label);
+    if (!finalLabel || !finalSlug) {
+      toast({ title: "Both a label and a slug are required", variant: "destructive" });
+      return;
+    }
+    const siblings = taxonomy.filter((r) => (r.parent_category || null) === parent);
+    if (siblings.some((r) => r.slug === finalSlug)) {
+      toast({ title: `"${finalSlug}" already exists here`, variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.from("taxonomy").insert({
+      parent_category: parent,
+      slug: finalSlug,
+      label: finalLabel,
+      blurb: "",
+      sort_order: siblings.length + 1,
+    });
+    if (error) {
+      toast({ title: "Failed to add", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (parent) setNewSub((prev) => ({ ...prev, [parent]: { label: "", slug: "" } }));
+    else setNewCategory({ label: "", slug: "" });
+    await reloadTaxonomy();
+    toast({ title: `Added ${finalLabel}` });
+  };
+
+  /** How many portfolio items are tagged with this category or sub-category. */
+  const taxonomyUsage = (row: TaxonomyRecord) =>
+    portfolio.filter((item) =>
+      readTags(item).some((tag) =>
+        row.parent_category
+          ? tag.category === row.parent_category && tag.subcategory === row.slug
+          : tag.category === row.slug,
+      ),
+    ).length;
+
+  const deleteTaxonomyRow = async (row: TaxonomyRecord) => {
+    const children = row.parent_category ? [] : taxonomy.filter((r) => r.parent_category === row.slug);
+    const used = taxonomyUsage(row);
+    const warnings = [
+      children.length ? `${children.length} sub-categor${children.length === 1 ? "y" : "ies"} under it will also be deleted` : null,
+      used ? `${used} video${used === 1 ? "" : "s"} tagged with it will stop appearing on its page` : null,
+    ].filter(Boolean);
+    const detail = warnings.length ? `\n\n${warnings.join(".\n")}.` : "";
+    if (!window.confirm(`Delete "${row.label}"?${detail}\n\nThis cannot be undone.`)) return;
+
+    const ids = [row.id, ...children.map((c) => c.id)];
+    const { error } = await supabase.from("taxonomy").delete().in("id", ids);
+    if (error) {
+      toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
+      return;
+    }
+    await reloadTaxonomy();
+    toast({ title: `Deleted ${row.label}` });
+  };
+
   const saveTestimonial = async (item: any) => {
     const { error } = await supabase.from("testimonials").update({
       client_name: item.client_name, client_title: item.client_title, content: item.content, rating: item.rating,
@@ -535,6 +650,7 @@ const AdminDashboard = () => {
     { key: "techStack", label: "Tech Stack", icon: Settings },
     { key: "portfolio", label: "Portfolio", icon: Plus },
     { key: "layouts", label: "User Layouts", icon: ImageIcon },
+    { key: "categories", label: "Categories", icon: Tags },
     { key: "testimonials", label: "Testimonials", icon: MessageSquare },
     { key: "messages", label: "Messages", icon: Mail },
     { key: "settings", label: "Settings", icon: Settings },
@@ -769,7 +885,7 @@ const AdminDashboard = () => {
                   label="Upload into category"
                   value={uploadCat}
                   onChange={(v) => { setUploadCat(v); setUploadSub(""); }}
-                  options={CATEGORIES.map((c) => ({ value: c.slug, label: c.label }))}
+                  options={categories.map((c) => ({ value: c.slug, label: c.label }))}
                   placeholder="No category"
                 />
                 <SelectField
@@ -784,7 +900,7 @@ const AdminDashboard = () => {
                   label="Filter list by category"
                   value={filterCat}
                   onChange={setFilterCat}
-                  options={CATEGORIES.map((c) => ({ value: c.slug, label: c.label }))}
+                  options={categories.map((c) => ({ value: c.slug, label: c.label }))}
                   placeholder="All categories"
                 />
                 <p className="md:col-span-3 text-xs text-muted-foreground">
@@ -894,6 +1010,141 @@ const AdminDashboard = () => {
                  </div>
                 )
               ))}
+            </div>
+          )}
+
+          {activeSection === "categories" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-display font-bold">Categories</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  The shared taxonomy every layout and category page is built from. Add a niche here and it
+                  appears in the tag picker and on the site without a code change.
+                </p>
+              </div>
+
+              {/* New top-level category */}
+              <div className="rounded-xl border border-dashed border-border bg-card/50 p-5">
+                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Add a top-level category</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                  <InputField
+                    label="Label"
+                    value={newCategory.label}
+                    placeholder="e.g. 3D Animation"
+                    onChange={(v) => setNewCategory((prev) => ({ ...prev, label: v }))}
+                  />
+                  <InputField
+                    label="Slug (used in URLs, cannot change later)"
+                    value={newCategory.slug}
+                    placeholder={newCategory.label ? slugify(newCategory.label) : "e.g. 3d-animation"}
+                    onChange={(v) => setNewCategory((prev) => ({ ...prev, slug: v }))}
+                  />
+                  <button
+                    onClick={() => addTaxonomyRow(null, newCategory.label, newCategory.slug)}
+                    className="flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground"
+                  >
+                    <Plus className="h-4 w-4" /> Add
+                  </button>
+                </div>
+              </div>
+
+              {taxonomy.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  No categories stored yet. The site is falling back to its built-in list until you add some.
+                </p>
+              )}
+
+              {taxonomy
+                .filter((row) => !row.parent_category)
+                .sort((a, b) => orderOf(a) - orderOf(b))
+                .map((parent, pi) => {
+                  const subs = taxonomy
+                    .filter((row) => row.parent_category === parent.slug)
+                    .sort((a, b) => orderOf(a) - orderOf(b));
+                  const draft = newSub[parent.slug] || { label: "", slug: "" };
+                  const parentIndex = taxonomy.findIndex((r) => r.id === parent.id);
+                  return (
+                    <div key={parent.id} className="space-y-4 rounded-xl border border-border bg-card p-6">
+                      <div className="grid gap-3 sm:grid-cols-[1fr_2fr_auto_auto] sm:items-end">
+                        <InputField
+                          label="Label"
+                          value={parent.label}
+                          onChange={(v) => { const next = [...taxonomy]; next[parentIndex] = { ...parent, label: v }; setTaxonomy(next); }}
+                        />
+                        <InputField
+                          label="Blurb"
+                          value={parent.blurb || ""}
+                          onChange={(v) => { const next = [...taxonomy]; next[parentIndex] = { ...parent, blurb: v }; setTaxonomy(next); }}
+                        />
+                        <InputField
+                          label="Order"
+                          value={String(parent.sort_order ?? pi + 1)}
+                          onChange={(v) => { const next = [...taxonomy]; next[parentIndex] = { ...parent, sort_order: v }; setTaxonomy(next); }}
+                        />
+                        <div className="flex gap-2">
+                          <SaveButton onClick={() => saveTaxonomyRow(taxonomy[parentIndex])} />
+                          <DeleteButton onClick={() => deleteTaxonomyRow(parent)} />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Slug <code className="rounded bg-muted px-1.5 py-0.5">{parent.slug}</code> · {taxonomyUsage(parent)} video(s) tagged
+                      </p>
+
+                      <div className="space-y-2 border-t border-border pt-4">
+                        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                          Sub-categories ({subs.length})
+                        </p>
+                        {subs.map((sub) => {
+                          const subIndex = taxonomy.findIndex((r) => r.id === sub.id);
+                          return (
+                            <div key={sub.id} className="grid gap-2 rounded-lg border border-border/60 bg-background/40 p-3 sm:grid-cols-[1fr_2fr_auto_auto] sm:items-end">
+                              <InputField
+                                label="Label"
+                                value={sub.label}
+                                onChange={(v) => { const next = [...taxonomy]; next[subIndex] = { ...sub, label: v }; setTaxonomy(next); }}
+                              />
+                              <InputField
+                                label="Blurb"
+                                value={sub.blurb || ""}
+                                onChange={(v) => { const next = [...taxonomy]; next[subIndex] = { ...sub, blurb: v }; setTaxonomy(next); }}
+                              />
+                              <InputField
+                                label="Order"
+                                value={String(sub.sort_order ?? 0)}
+                                onChange={(v) => { const next = [...taxonomy]; next[subIndex] = { ...sub, sort_order: v }; setTaxonomy(next); }}
+                              />
+                              <div className="flex gap-2">
+                                <SaveButton onClick={() => saveTaxonomyRow(taxonomy[subIndex])} />
+                                <DeleteButton onClick={() => deleteTaxonomyRow(sub)} />
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        <div className="grid gap-2 pt-1 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                          <InputField
+                            label="New sub-category label"
+                            value={draft.label}
+                            placeholder="e.g. 2D"
+                            onChange={(v) => setNewSub((prev) => ({ ...prev, [parent.slug]: { ...draft, label: v } }))}
+                          />
+                          <InputField
+                            label="Slug"
+                            value={draft.slug}
+                            placeholder={draft.label ? slugify(draft.label) : "e.g. 2d"}
+                            onChange={(v) => setNewSub((prev) => ({ ...prev, [parent.slug]: { ...draft, slug: v } }))}
+                          />
+                          <button
+                            onClick={() => addTaxonomyRow(parent.slug, draft.label, draft.slug)}
+                            className="flex h-11 items-center justify-center gap-2 rounded-lg border border-primary/40 px-4 text-sm font-medium text-primary"
+                          >
+                            <Plus className="h-4 w-4" /> Add
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           )}
 

@@ -27,12 +27,14 @@ export const getAspectRatio = (slug?: string | null) =>
   ASPECT_RATIOS.find((r) => r.slug === slug);
 
 /**
- * Shared taxonomy — the single source of truth for every user layout.
- * Portfolio items are tagged with `category_slug` + `subcategory_slug`
- * (+ optionally `aspect_ratio`), so adding a video in admin instantly
- * surfaces it, correctly filtered, on every layout.
+ * The taxonomy this project shipped with, now the seed for the `taxonomy`
+ * table and the fallback used before that fetch resolves (or if it fails), so
+ * the site always renders a sensible category list.
+ *
+ * Read the live taxonomy with `getCategories()` outside React, or the
+ * `useCategories()` hook inside it — not this array, which never changes.
  */
-export const CATEGORIES: Category[] = [
+export const SEED_CATEGORIES: Category[] = [
   {
     slug: "ai-video",
     label: "AI Video",
@@ -87,8 +89,58 @@ export const CATEGORIES: Category[] = [
   },
 ];
 
+/** One row of the `taxonomy` table. A null parent_category means top-level. */
+export interface TaxonomyRow {
+  parent_category?: string | null;
+  slug: string;
+  label: string;
+  blurb?: string | null;
+  sort_order?: number | null;
+}
+
+/** Folds flat taxonomy rows into the nested shape the UI already expects. */
+export const rowsToCategories = (rows: TaxonomyRow[]): Category[] => {
+  const bySort = (a: TaxonomyRow, b: TaxonomyRow) =>
+    (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.label.localeCompare(b.label);
+  return rows
+    .filter((r) => !r.parent_category && r.slug)
+    .sort(bySort)
+    .map((parent) => ({
+      slug: parent.slug,
+      label: parent.label,
+      blurb: parent.blurb || "",
+      subcategories: rows
+        .filter((r) => r.parent_category === parent.slug && r.slug)
+        .sort(bySort)
+        .map((sub) => ({ slug: sub.slug, label: sub.label, blurb: sub.blurb || "" })),
+    }));
+};
+
+// The live taxonomy. Helpers below are called during render and from plain
+// functions alike, so it is kept here as module state rather than threaded
+// through props, with subscribers notified so React can re-render.
+let activeCategories: Category[] = SEED_CATEGORIES;
+const categoryListeners = new Set<() => void>();
+
+export const getCategories = () => activeCategories;
+
+export const subscribeCategories = (listener: () => void) => {
+  categoryListeners.add(listener);
+  return () => categoryListeners.delete(listener);
+};
+
+/**
+ * Swaps in the taxonomy loaded from the database. An empty list is ignored in
+ * favour of the seed: a table that has not been seeded yet should not blank
+ * every category picker on the site.
+ */
+export const setCategories = (next: Category[]) => {
+  activeCategories = next.length ? next : SEED_CATEGORIES;
+  categoryListeners.forEach((listener) => listener());
+};
+
 export const getCategory = (slug?: string | null) =>
-  CATEGORIES.find((c) => c.slug === slug);
+  getCategories().find((c) => c.slug === slug);
 
 export const getSubCategory = (catSlug?: string | null, subSlug?: string | null) =>
   getCategory(catSlug)?.subcategories.find((s) => s.slug === subSlug);
