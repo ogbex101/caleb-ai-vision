@@ -6,6 +6,7 @@ import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown,
 import type { Session } from "@supabase/supabase-js";
 import { ASPECT_RATIOS, MAX_CATEGORY_TAGS, getCategory, readTags, tagsMatch, type CategoryTag } from "@/lib/categories";
 import { refreshCategories, useCategories } from "@/hooks/useCategories";
+import { needsRehosting, videoSourceLabel } from "@/lib/videoSource";
 import CategoryTagsEditor from "@/components/admin/CategoryTagsEditor";
 import { VideoCompressionError, compressVideo, contentTypeFor, shouldCompress } from "@/lib/compressVideo";
 
@@ -675,6 +676,7 @@ const AdminDashboard = () => {
   const mostClickedVideos = countBy(rangedVideoClicks.filter((click) => click.title), "title");
   const clicksByLayout = countBy(rangedVideoClicks, "username");
   const topVideo = mostClickedVideos[0];
+  const rehostCount = portfolio.filter((item) => needsRehosting(item.video_url)).length;
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading...</div>;
 
@@ -908,6 +910,22 @@ const AdminDashboard = () => {
                 </p>
               </div>
 
+              {/* A Drive/YouTube link is fine as the "full video" link, but it
+                  cannot drive an inline <video>, so those previews show nothing
+                  until the file is re-uploaded here. */}
+              {rehostCount > 0 && (
+                <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-5">
+                  <p className="text-sm font-medium text-destructive">
+                    {rehostCount} preview{rehostCount === 1 ? "" : "s"} won't play inline
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Their preview URL points at a share page (Google Drive, YouTube, Dropbox…) rather than a video
+                    file, so visitors see an empty player. Upload the file with the item's own Upload button to fix it.
+                    Keeping the Drive link in “Full Video Link” is fine — that one is a link, not a player.
+                  </p>
+                </div>
+              )}
+
               {portfolio.map((item, i) => (
                 filterCat && !tagsMatch(readTags(item), filterCat) ? null : (
                 <div
@@ -927,6 +945,14 @@ const AdminDashboard = () => {
                         <Star className={`w-5 h-5 ${item.featured ? 'fill-primary' : ''}`} />
                       </button>
                       <span className="text-sm font-medium text-foreground">{item.title || "Untitled"}</span>
+                      {needsRehosting(item.video_url) && (
+                        <span
+                          title="This preview URL is a share page, not a video file, so it cannot play inline. Re-upload the file here."
+                          className="rounded-full border border-destructive/50 bg-destructive/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-destructive"
+                        >
+                          {videoSourceLabel(item.video_url)}
+                        </span>
+                      )}
                     </div>
                     {item.featured && (
                       <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
