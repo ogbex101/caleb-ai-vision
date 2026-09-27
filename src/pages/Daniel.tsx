@@ -42,7 +42,7 @@ const Daniel = () => {
       </nav>
 
       <main>
-        <CinematicHero heroUrl={heroUrl} isImage={isImage} items={items} tagline={layout?.tagline} />
+        <CinematicHero heroUrl={heroUrl} isImage={isImage} items={items} tagline={layout?.tagline} parallaxLayers={layout?.hero_parallax_urls} />
 
         <StudioMarquee />
 

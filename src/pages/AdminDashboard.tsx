@@ -340,6 +340,7 @@ const AdminDashboard = () => {
       tagline: layout.tagline,
       hero_media_url: layout.hero_media_url || null,
       hero_media_type: layout.hero_media_type,
+      hero_parallax_urls: layout.hero_parallax_urls || {},
       active: layout.active,
       updated_at: new Date().toISOString(),
     }).eq("id", layout.id);
@@ -824,6 +825,34 @@ const AdminDashboard = () => {
                       <input type="file" accept="video/*,image/*" className="hidden" disabled={heroUploading === layout.id} onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadHeroMedia(i, file); e.target.value = ""; }} />
                     </label>
                     <SaveButton onClick={() => saveLayout(layout)} />
+                  </div>
+
+                  {/* 4-layer cinematic parallax hero, optional. Leave any of
+                      these blank and that layer is simply skipped, the single
+                      Hero media above still works as the fallback. */}
+                  <div className="space-y-3 rounded-lg border border-dashed border-border p-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Cinematic parallax hero (optional, 4 clips)</p>
+                    <InputField
+                      label="Layer 4 — Intro reveal (plays once on load)"
+                      value={layout.hero_parallax_urls?.intro || ""}
+                      onChange={(v) => { const next = [...layouts]; next[i] = { ...layout, hero_parallax_urls: { ...layout.hero_parallax_urls, intro: v } }; setLayouts(next); }}
+                    />
+                    <InputField
+                      label="Layer 1 — Background (slowest)"
+                      value={layout.hero_parallax_urls?.back || ""}
+                      onChange={(v) => { const next = [...layouts]; next[i] = { ...layout, hero_parallax_urls: { ...layout.hero_parallax_urls, back: v } }; setLayouts(next); }}
+                    />
+                    <InputField
+                      label="Layer 2 — Midground"
+                      value={layout.hero_parallax_urls?.mid || ""}
+                      onChange={(v) => { const next = [...layouts]; next[i] = { ...layout, hero_parallax_urls: { ...layout.hero_parallax_urls, mid: v } }; setLayouts(next); }}
+                    />
+                    <InputField
+                      label="Layer 3 — Foreground (fastest)"
+                      value={layout.hero_parallax_urls?.front || ""}
+                      onChange={(v) => { const next = [...layouts]; next[i] = { ...layout, hero_parallax_urls: { ...layout.hero_parallax_urls, front: v } }; setLayouts(next); }}
+                    />
+                    <p className="text-xs text-muted-foreground">Paste the hosted clip URLs here (or upload them to storage the same way you upload portfolio videos, then paste the public URL). Fill in as many as you have, don't need all 4 to see it work.</p>
                   </div>
                 </div>
               ))}
