@@ -39,6 +39,43 @@ const compressionFailureTitle = (err: unknown) =>
 
 type CompressionStatus = { key: string; progress: number } | null;
 
+type TimeRange = "today" | "3d" | "week" | "month" | "all";
+
+const TIME_RANGES: { value: TimeRange; label: string }[] = [
+  { value: "today", label: "Today" },
+  { value: "3d", label: "Last 3 Days" },
+  { value: "week", label: "Last Week" },
+  { value: "month", label: "Last Month" },
+  { value: "all", label: "All Time" },
+];
+
+/**
+ * Oldest created_at still counted, or null for all time. "Today" means since
+ * local midnight, which is what an admin checking today's numbers expects; the
+ * wider ranges are rolling windows counted back from now.
+ */
+const rangeCutoff = (range: TimeRange): Date | null => {
+  if (range === "all") return null;
+  if (range === "today") {
+    const midnight = new Date();
+    midnight.setHours(0, 0, 0, 0);
+    return midnight;
+  }
+  const days = range === "3d" ? 3 : range === "week" ? 7 : 30;
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+};
+
+/** Rows created at or after the cutoff. Rows with no usable date are dropped. */
+const withinRange = <T extends { created_at?: string | null }>(rows: T[], range: TimeRange): T[] => {
+  const cutoff = rangeCutoff(range);
+  if (!cutoff) return rows;
+  const from = cutoff.getTime();
+  return rows.filter((row) => {
+    const at = row.created_at ? new Date(row.created_at).getTime() : NaN;
+    return Number.isFinite(at) && at >= from;
+  });
+};
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -57,6 +94,7 @@ const AdminDashboard = () => {
   const [pageViews, setPageViews] = useState<any[]>([]);
   const [linkCopies, setLinkCopies] = useState<any[]>([]);
   const [videoClicks, setVideoClicks] = useState<any[]>([]);
+  const [timeRange, setTimeRange] = useState<TimeRange>("all");
 
   // Upload states
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
@@ -502,18 +540,24 @@ const AdminDashboard = () => {
     { key: "settings", label: "Settings", icon: Settings },
   ];
 
-  const uniqueVisitors = new Set(pageViews.map((view) => view.visitor_id).filter(Boolean)).size;
+  // Every figure below is derived from these, so filtering here is what makes
+  // the whole analytics section honour the selected range.
+  const rangedPageViews = withinRange(pageViews, timeRange);
+  const rangedLinkCopies = withinRange(linkCopies, timeRange);
+  const rangedVideoClicks = withinRange(videoClicks, timeRange);
+
+  const uniqueVisitors = new Set(rangedPageViews.map((view) => view.visitor_id).filter(Boolean)).size;
   const countBy = (rows: any[], key: string) => Object.entries(rows.reduce<Record<string, number>>((acc, row) => {
     const value = row[key] || "Unknown";
     acc[value] = (acc[value] || 0) + 1;
     return acc;
   }, {})).sort((a, b) => b[1] - a[1]);
-  const categoryViews = countBy(pageViews.filter((view) => view.category_slug), "category_slug");
-  const layoutViews = countBy(pageViews, "username");
-  const sourceViews = countBy(pageViews, "source");
-  const copiedCategories = countBy(linkCopies, "category_slug");
-  const mostClickedVideos = countBy(videoClicks.filter((click) => click.title), "title");
-  const clicksByLayout = countBy(videoClicks, "username");
+  const categoryViews = countBy(rangedPageViews.filter((view) => view.category_slug), "category_slug");
+  const layoutViews = countBy(rangedPageViews, "username");
+  const sourceViews = countBy(rangedPageViews, "source");
+  const copiedCategories = countBy(rangedLinkCopies, "category_slug");
+  const mostClickedVideos = countBy(rangedVideoClicks.filter((click) => click.title), "title");
+  const clicksByLayout = countBy(rangedVideoClicks, "username");
   const topVideo = mostClickedVideos[0];
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading...</div>;
@@ -569,15 +613,37 @@ const AdminDashboard = () => {
 
           {activeSection === "analytics" && (
             <div className="space-y-8">
-              <div>
-                <h2 className="text-2xl font-display font-bold">Portfolio Analytics</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Views and link activity recorded across every user layout.</p>
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-display font-bold">Portfolio Analytics</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Views and link activity recorded across every user layout
+                    {timeRange === "all" ? "." : `, ${TIME_RANGES.find((r) => r.value === timeRange)?.label.toLowerCase()}.`}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1.5" role="group" aria-label="Analytics time range">
+                  {TIME_RANGES.map((r) => (
+                    <button
+                      key={r.value}
+                      type="button"
+                      onClick={() => setTimeRange(r.value)}
+                      aria-pressed={timeRange === r.value}
+                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                        timeRange === r.value
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-4">
-                <StatCard icon={Eye} label="Total views" value={pageViews.length} />
+                <StatCard icon={Eye} label="Total views" value={rangedPageViews.length} />
                 <StatCard icon={Users} label="Unique visitors" value={uniqueVisitors} />
-                <StatCard icon={Copy} label="Links copied" value={linkCopies.length} />
-                <StatCard icon={Play} label="Video plays" value={videoClicks.length} />
+                <StatCard icon={Copy} label="Links copied" value={rangedLinkCopies.length} />
+                <StatCard icon={Play} label="Video plays" value={rangedVideoClicks.length} />
               </div>
               {topVideo && (
                 <div className="rounded-xl border border-primary/40 bg-primary/5 p-6">
