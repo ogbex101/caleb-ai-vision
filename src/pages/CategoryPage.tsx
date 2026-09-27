@@ -7,7 +7,8 @@ import CategorySearch from "@/components/CategorySearch";
 import PortfolioGrid from "@/components/PortfolioGrid";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { usePageView } from "@/hooks/usePageView";
-import { usePortfolioItems } from "@/hooks/usePortfolioItems";
+import { usePortfolioItems, useSiteLayoutState } from "@/hooks/usePortfolioItems";
+import MaintenanceScreen from "@/components/MaintenanceScreen";
 import { ASPECT_RATIOS, getCategory, getSubCategory, parseCategoryParam, USERNAMES, type Username } from "@/lib/categories";
 
 const displayNames: Record<Username, string> = {
@@ -36,8 +37,23 @@ const CategoryPage = () => {
     subcategorySlug: sub?.slug,
     aspectRatio: ratio,
   });
+  const { layout, loading: layoutLoading } = useSiteLayoutState(username ?? "");
 
   if (!username || !category || invalidSubcategory) return <Navigate to="/404" replace />;
+
+  // A category page is a direct, shareable link, so it has to honour the flag
+  // too — otherwise maintenance mode is trivially bypassed.
+  if (layoutLoading) return <div className="min-h-screen bg-background" />;
+  if (layout?.maintenance_mode) {
+    return (
+      <MaintenanceScreen
+        displayName={layout.display_name || displayNames[username]}
+        message={layout.maintenance_message}
+        variant={username === "faith" ? "faith" : username === "daniel" ? "daniel" : "caleb"}
+        to={username === "caleb" ? "/" : `/${username}`}
+      />
+    );
+  }
 
   const setRatio = (value: string | null) => {
     const next = new URLSearchParams(searchParams);

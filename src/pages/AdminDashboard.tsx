@@ -440,6 +440,10 @@ const AdminDashboard = () => {
       hero_media_url: layout.hero_media_url || null,
       hero_media_type: layout.hero_media_type,
       hero_parallax_urls: layout.hero_parallax_urls || {},
+      maintenance_mode: Boolean(layout.maintenance_mode),
+      maintenance_message: layout.maintenance_message || null,
+      seo_title: layout.seo_title || null,
+      seo_description: layout.seo_description || null,
       active: layout.active,
       updated_at: new Date().toISOString(),
     }).eq("id", layout.id);
@@ -1332,6 +1336,83 @@ const AdminDashboard = () => {
                 <InputField label="New Password" value={newPassword} onChange={setNewPassword} placeholder="Leave blank to keep current" type="password" />
                 <SaveButton onClick={updateCredentials} label="Update Credentials" />
               </div>
+
+              <div>
+                <h2 className="text-2xl font-display font-bold">Per-user settings</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Take a layout off the public site while you build it, and set the title and description search
+                  engines show for it.
+                </p>
+              </div>
+
+              {layouts.length === 0 && (
+                <p className="text-sm text-muted-foreground">No layouts yet. Add one in the Layouts section first.</p>
+              )}
+
+              {layouts.map((layout, i) => (
+                <div key={layout.id} className="space-y-5 rounded-xl border border-border bg-card p-6">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="font-display font-semibold">{layout.display_name || layout.username}</p>
+                      <p className="text-xs text-muted-foreground">/{layout.username}</p>
+                    </div>
+                    {layout.maintenance_mode && (
+                      <span className="rounded-full border border-destructive/50 bg-destructive/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-destructive">
+                        Hidden from visitors
+                      </span>
+                    )}
+                  </div>
+
+                  <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background/40 p-4">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(layout.maintenance_mode)}
+                      onChange={(e) => { const next = [...layouts]; next[i] = { ...layout, maintenance_mode: e.target.checked }; setLayouts(next); }}
+                      className="mt-0.5 h-4 w-4 accent-primary"
+                    />
+                    <span>
+                      <span className="block text-sm font-medium">Maintenance / coming-soon mode</span>
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        Replaces this user's page and all of its category pages with a coming-soon screen. Nothing is
+                        deleted, and the admin dashboard stays reachable.
+                      </span>
+                    </span>
+                  </label>
+
+                  <InputField
+                    label="Coming-soon message (optional)"
+                    value={layout.maintenance_message || ""}
+                    placeholder="This portfolio is being put together right now. Check back shortly."
+                    textarea
+                    rows={2}
+                    onChange={(v) => { const next = [...layouts]; next[i] = { ...layout, maintenance_message: v }; setLayouts(next); }}
+                  />
+
+                  <div className="space-y-4 border-t border-border pt-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Search engine defaults</p>
+                    <InputField
+                      label="Page title"
+                      value={layout.seo_title || ""}
+                      placeholder="Leave blank to use the built-in title"
+                      onChange={(v) => { const next = [...layouts]; next[i] = { ...layout, seo_title: v }; setLayouts(next); }}
+                    />
+                    <InputField
+                      label="Meta description"
+                      value={layout.seo_description || ""}
+                      placeholder="Leave blank to use the built-in description"
+                      textarea
+                      rows={2}
+                      onChange={(v) => { const next = [...layouts]; next[i] = { ...layout, seo_description: v }; setLayouts(next); }}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Applies to this user's main page. Category pages keep their own titles, so each niche stays
+                      distinct in search results.
+                    </p>
+                  </div>
+
+                  <SaveButton onClick={() => saveLayout(layouts[i])} />
+                </div>
+              ))}
             </div>
           )}
         </main>

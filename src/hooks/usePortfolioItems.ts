@@ -60,14 +60,27 @@ export const usePortfolioItems = ({ featuredOnly, categorySlug, subcategorySlug,
   return { items, loading };
 };
 
-export const useSiteLayout = (username: string) => {
+/**
+ * The layout row plus whether it is still loading. Callers that gate rendering
+ * on it (maintenance mode) need to tell "no row yet" from "no row exists",
+ * otherwise the page flashes its content before the gate closes.
+ */
+export const useSiteLayoutState = (username: string) => {
   const [layout, setLayout] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     const db = supabase as any;
     db.from("site_layouts").select("*").eq("username", username).maybeSingle()
-      .then(({ data }: { data: any }) => { if (!cancelled) setLayout(data); });
+      .then(({ data }: { data: any }) => {
+        if (cancelled) return;
+        setLayout(data);
+        setLoading(false);
+      });
     return () => { cancelled = true; };
   }, [username]);
-  return layout;
+  return { layout, loading };
 };
+
+export const useSiteLayout = (username: string) => useSiteLayoutState(username).layout;
