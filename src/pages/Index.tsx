@@ -8,6 +8,7 @@ import FAQSection from "@/components/FAQSection";
 import ContactSection from "@/components/ContactSection";
 import Footer from "@/components/Footer";
 import CategoryLinkBuilder from "@/components/CategoryLinkBuilder";
+import CategorySearch from "@/components/CategorySearch";
 import { usePageView } from "@/hooks/usePageView";
 
 const Index = () => {
@@ -16,6 +17,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <HeroSection />
+      <CategorySearch username="caleb" />
       <AboutSection />
       <TechStackSection />
       <CategoryLinkBuilder username="caleb" />

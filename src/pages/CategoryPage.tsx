@@ -3,6 +3,7 @@ import { ArrowLeft, Film } from "lucide-react";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import BrandLogo from "@/components/BrandLogo";
 import CategoryLinkBuilder from "@/components/CategoryLinkBuilder";
+import CategorySearch from "@/components/CategorySearch";
 import PortfolioGrid from "@/components/PortfolioGrid";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { usePageView } from "@/hooks/usePageView";
@@ -101,6 +102,13 @@ const CategoryPage = () => {
 
         <section className="mx-auto max-w-6xl px-6 py-16">
           {loading ? <p className="py-16 text-center text-muted-foreground">Loading portfolio…</p> : <PortfolioGrid items={items} />}
+        </section>
+
+        <section className="border-t border-border/60 px-6 py-14">
+          <div className="mx-auto max-w-xl">
+            <p className="mb-3 text-center text-sm text-muted-foreground">Looking for something else?</p>
+            <CategorySearch username={username} bare />
+          </div>
         </section>
 
         <section className="border-t border-border/60 px-6 py-20">

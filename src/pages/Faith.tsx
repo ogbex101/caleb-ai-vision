@@ -8,6 +8,7 @@ import FAQSection from "@/components/FAQSection";
 import ContactSection from "@/components/ContactSection";
 import BrandLogo from "@/components/BrandLogo";
 import CategoryLinkBuilder from "@/components/CategoryLinkBuilder";
+import CategorySearch from "@/components/CategorySearch";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { usePageView } from "@/hooks/usePageView";
 import { useSiteLayout } from "@/hooks/usePortfolioItems";
@@ -223,6 +224,7 @@ const Faith = () => {
     <div className="min-h-screen bg-background">
       <FaithNavbar />
       <FaithHero heroUrl={heroUrl} isImage={isImage} />
+      <CategorySearch username="faith" />
       <FaithAbout />
       <CategoryLinkBuilder username="faith" />
       <section id="portfolio">
