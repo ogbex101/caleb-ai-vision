@@ -6,7 +6,7 @@ import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown,
 import type { Session } from "@supabase/supabase-js";
 import { ASPECT_RATIOS, CATEGORIES, MAX_CATEGORY_TAGS, getCategory, readTags, tagsMatch, type CategoryTag } from "@/lib/categories";
 import CategoryTagsEditor from "@/components/admin/CategoryTagsEditor";
-import { compressVideo, shouldCompress } from "@/lib/compressVideo";
+import { VideoCompressionError, compressVideo, contentTypeFor, shouldCompress } from "@/lib/compressVideo";
 
 type SectionName = "analytics" | "hero" | "about" | "techStack" | "portfolio" | "layouts" | "testimonials" | "messages" | "settings";
 
@@ -15,6 +15,27 @@ type SectionName = "analytics" | "hero" | "about" | "techStack" | "portfolio" | 
 const MAX_SOURCE_VIDEO_SIZE_MB = 1024;
 // Anything under this uploads as-is, no need to wait on a transcode.
 const MAX_VIDEO_SIZE_MB = 50;
+// Hard ceiling enforced by the portfolio-videos bucket itself
+// (storage.buckets.file_size_limit = 209715200). Anything above this is
+// rejected by the storage API with a bare 400, so check it here and say why.
+const BUCKET_FILE_SIZE_LIMIT_MB = 200;
+
+/**
+ * Why this upload cannot succeed, or null when it can. Checked against the
+ * file that is actually about to be sent, which is the compressed output when
+ * compression worked and the untouched original when it didn't.
+ */
+const uploadBlocker = (file: File) => {
+  if (file.size <= BUCKET_FILE_SIZE_LIMIT_MB * 1024 * 1024) return null;
+  const mb = Math.round(file.size / (1024 * 1024));
+  return `${file.name} is ${mb}MB, over the ${BUCKET_FILE_SIZE_LIMIT_MB}MB storage limit. Compression either failed or could not shrink it enough — trim or re-encode it locally, then upload again.`;
+};
+
+/** Compression failures read differently depending on which step broke. */
+const compressionFailureTitle = (err: unknown) =>
+  err instanceof VideoCompressionError && err.stage === "load"
+    ? "Video compressor unavailable, uploading the original instead"
+    : "Compression failed, uploading the original file instead";
 
 type CompressionStatus = { key: string; progress: number } | null;
 
@@ -149,10 +170,17 @@ const AdminDashboard = () => {
       try {
         file = await compressVideo(rawFile, (ratio) => setCompressing({ key, progress: ratio }));
       } catch (err) {
-        toast({ title: "Compression failed, uploading the original file instead", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
+        toast({ title: compressionFailureTitle(err), description: err instanceof Error ? err.message : undefined, variant: "destructive" });
       } finally {
         setCompressing(null);
       }
+    }
+
+    const blocked = uploadBlocker(file);
+    if (blocked) {
+      toast({ title: "Upload too large for storage", description: blocked, variant: "destructive" });
+      setUploadingIndex(null);
+      return;
     }
 
     const item = portfolio[index];
@@ -167,7 +195,7 @@ const AdminDashboard = () => {
 
     const { error: uploadError } = await supabase.storage
       .from('portfolio-videos')
-      .upload(filePath, file, { cacheControl: '3600', upsert: true, contentType: file.type });
+      .upload(filePath, file, { cacheControl: '3600', upsert: true, contentType: contentTypeFor(file) });
 
     if (uploadError) {
       toast({ title: "Upload failed: " + uploadError.message, variant: "destructive" });
@@ -249,17 +277,24 @@ const AdminDashboard = () => {
         try {
           file = await compressVideo(rawFile, (ratio) => setCompressing({ key, progress: ratio }));
         } catch (err) {
-          toast({ title: `Compression failed for ${rawFile.name}, uploading the original`, variant: "destructive" });
+          toast({ title: compressionFailureTitle(err), description: err instanceof Error ? err.message : undefined, variant: "destructive" });
         } finally {
           setCompressing(null);
         }
+      }
+
+      const blockedBulk = uploadBlocker(file);
+      if (blockedBulk) {
+        toast({ title: `Skipped ${rawFile.name}`, description: blockedBulk, variant: "destructive" });
+        setBulkUploading({ done: i + 1, total: valid.length });
+        continue;
       }
 
       const ext = file.name.split(".").pop();
       const filePath = `${newRow.id}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("portfolio-videos")
-        .upload(filePath, file, { cacheControl: "3600", upsert: true, contentType: file.type });
+        .upload(filePath, file, { cacheControl: "3600", upsert: true, contentType: contentTypeFor(file) });
 
       if (upErr) {
         toast({ title: `Upload failed for ${rawFile.name}: ${upErr.message}`, variant: "destructive" });
@@ -374,15 +409,22 @@ const AdminDashboard = () => {
       try {
         file = await compressVideo(rawFile, (ratio) => setCompressing({ key, progress: ratio }));
       } catch (err) {
-        toast({ title: "Compression failed, uploading the original file instead", variant: "destructive" });
+        toast({ title: compressionFailureTitle(err), description: err instanceof Error ? err.message : undefined, variant: "destructive" });
       } finally {
         setCompressing(null);
       }
     }
 
+    const blockedHero = uploadBlocker(file);
+    if (blockedHero) {
+      toast({ title: "Upload too large for storage", description: blockedHero, variant: "destructive" });
+      setHeroUploading(null);
+      return;
+    }
+
     const ext = file.name.split(".").pop() || (file.type.startsWith("image/") ? "jpg" : "mp4");
     const path = `heroes/${layout.username}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("portfolio-videos").upload(path, file, { contentType: file.type, upsert: true });
+    const { error } = await supabase.storage.from("portfolio-videos").upload(path, file, { contentType: contentTypeFor(file), upsert: true });
     if (error) {
       toast({ title: `Hero upload failed: ${error.message}`, variant: "destructive" });
       setHeroUploading(null);

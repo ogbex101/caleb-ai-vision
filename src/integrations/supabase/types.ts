@@ -225,6 +225,7 @@ export type Database = {
           display_name: string
           hero_media_type: string
           hero_media_url: string | null
+          hero_parallax_urls: Json
           id: string
           tagline: string | null
           theme: string
@@ -237,6 +238,7 @@ export type Database = {
           display_name: string
           hero_media_type?: string
           hero_media_url?: string | null
+          hero_parallax_urls?: Json
           id?: string
           tagline?: string | null
           theme?: string
@@ -249,6 +251,7 @@ export type Database = {
           display_name?: string
           hero_media_type?: string
           hero_media_url?: string | null
+          hero_parallax_urls?: Json
           id?: string
           tagline?: string | null
           theme?: string
