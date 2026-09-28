@@ -16,17 +16,33 @@ import StudioMarquee from "@/components/daniel/StudioMarquee";
 import StudioStats from "@/components/daniel/StudioStats";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { usePageView } from "@/hooks/usePageView";
-import { usePortfolioItems, useSiteLayout } from "@/hooks/usePortfolioItems";
+import { usePortfolioItems, useSiteLayoutState } from "@/hooks/usePortfolioItems";
+import MaintenanceScreen from "@/components/MaintenanceScreen";
 
 const Daniel = () => {
   usePageView({ username: "daniel" });
-  usePageMeta("Daniel Studio | AI Film & Video Showreel", "Generative AI films, ads and social edits directed, edited and finished in-house by Daniel Studio.");
-  const layout = useSiteLayout("daniel");
+  const { layout, loading: layoutLoading } = useSiteLayoutState("daniel");
+  usePageMeta(
+    layout?.seo_title || "Daniel Studio | AI Film & Video Showreel",
+    layout?.seo_description || "Generative AI films, ads and social edits directed, edited and finished in-house by Daniel Studio.",
+  );
   const { items, loading } = usePortfolioItems({ featuredOnly: true });
   const { items: allItems } = usePortfolioItems();
   // Falls back to a local image until you set your own showreel via the admin dashboard
   const heroUrl = layout?.hero_media_url || heroBg;
   const isImage = layout?.hero_media_url ? layout?.hero_media_type === "image" : true;
+
+  if (layoutLoading) return <div className="daniel-studio min-h-screen bg-background" />;
+  if (layout?.maintenance_mode) {
+    return (
+      <MaintenanceScreen
+        displayName={layout.display_name || "Daniel Studio"}
+        message={layout.maintenance_message}
+        variant="daniel"
+        to="/daniel"
+      />
+    );
+  }
 
   return (
     <div className="daniel-studio min-h-screen bg-background">

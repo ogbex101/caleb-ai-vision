@@ -227,6 +227,10 @@ export type Database = {
           hero_media_url: string | null
           hero_parallax_urls: Json
           id: string
+          maintenance_message: string | null
+          maintenance_mode: boolean
+          seo_description: string | null
+          seo_title: string | null
           tagline: string | null
           theme: string
           updated_at: string
@@ -240,6 +244,10 @@ export type Database = {
           hero_media_url?: string | null
           hero_parallax_urls?: Json
           id?: string
+          maintenance_message?: string | null
+          maintenance_mode?: boolean
+          seo_description?: string | null
+          seo_title?: string | null
           tagline?: string | null
           theme?: string
           updated_at?: string
@@ -253,10 +261,47 @@ export type Database = {
           hero_media_url?: string | null
           hero_parallax_urls?: Json
           id?: string
+          maintenance_message?: string | null
+          maintenance_mode?: boolean
+          seo_description?: string | null
+          seo_title?: string | null
           tagline?: string | null
           theme?: string
           updated_at?: string
           username?: string
+        }
+        Relationships: []
+      }
+      taxonomy: {
+        Row: {
+          blurb: string | null
+          created_at: string
+          id: string
+          label: string
+          parent_category: string | null
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          blurb?: string | null
+          created_at?: string
+          id?: string
+          label: string
+          parent_category?: string | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          blurb?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          parent_category?: string | null
+          slug?: string
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }

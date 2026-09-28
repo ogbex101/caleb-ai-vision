@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { ArrowDown, Play, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PortfolioItem } from "@/hooks/usePortfolioItems";
@@ -35,6 +35,10 @@ const CinematicHero = ({ heroUrl, isImage, items, tagline, parallaxLayers }: Pro
   const [muted, setMuted] = useState(true);
   const [showIntro, setShowIntro] = useState(Boolean(parallaxLayers?.intro));
   const sectionRef = useRef<HTMLElement>(null);
+  // The caption re-animates itself every few seconds on its own, which is
+  // exactly the kind of motion a reduced-motion preference is asking us to
+  // drop, so it cross-fades instantly instead of sliding.
+  const reduceMotion = useReducedMotion();
 
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] });
   const mediaY = useTransform(scrollYProgress, [0, 1], ["0%", "16%"]);
@@ -67,6 +71,11 @@ const CinematicHero = ({ heroUrl, isImage, items, tagline, parallaxLayers }: Pro
   }, [parallaxLayers?.intro]);
 
   const montage = clips[active];
+  // Shown under the wordmark and swapped in step with the plate behind it, so
+  // the picture and the words describing it never disagree.
+  const caption = montage
+    ? { key: montage.id, title: montage.title, detail: montage.client_name || montage.category || null }
+    : null;
   const hasParallax = Boolean(parallaxLayers?.back || parallaxLayers?.mid || parallaxLayers?.front);
 
   return (
@@ -176,18 +185,28 @@ const CinematicHero = ({ heroUrl, isImage, items, tagline, parallaxLayers }: Pro
         <div className="grid items-end gap-10 lg:grid-cols-[minmax(0,1fr)_300px]">
           {/* Type block, aligned to one baseline grid */}
           <div>
-            <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.42em] text-primary">
-              <span className="h-px w-10 bg-primary/70" />
+            <motion.div
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              className="flex items-center gap-3 text-[10px] uppercase tracking-[0.42em] text-primary"
+            >
+              <motion.span
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                className="h-px w-10 origin-left bg-primary/70"
+              />
               AI Film Studio
-            </div>
+            </motion.div>
 
             <h1 className="mt-5 font-display text-[13vw] font-bold leading-[0.82] tracking-tight md:text-[8.5rem]">
               {["Daniel", "Studio"].map((word, i) => (
                 <span key={word} className="block overflow-hidden">
                   <motion.span
-                    initial={{ y: "115%" }}
-                    animate={{ y: "0%" }}
-                    transition={{ duration: 1.1, delay: 0.2 + i * 0.12, ease: [0.22, 1, 0.36, 1] }}
+                    initial={{ y: reduceMotion ? "0%" : "115%", opacity: reduceMotion ? 0 : 1 }}
+                    animate={{ y: "0%", opacity: 1 }}
+                    transition={{ duration: reduceMotion ? 0.3 : 1.1, delay: reduceMotion ? 0 : 0.2 + i * 0.12, ease: [0.22, 1, 0.36, 1] }}
                     className={`block ${i === 1 ? "gradient-text-gold" : "text-foreground"}`}
                   >
                     {word}
@@ -195,6 +214,27 @@ const CinematicHero = ({ heroUrl, isImage, items, tagline, parallaxLayers }: Pro
                 </span>
               ))}
             </h1>
+
+            {/* Fades out and back in as the plate cuts to the next clip, rather
+                than snapping, so the line stays readable across the change. */}
+            {caption && (
+              <div className="mt-5 h-6">
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.p
+                    key={caption.key}
+                    initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: reduceMotion ? 0 : -10 }}
+                    transition={{ duration: reduceMotion ? 0.2 : 0.55, ease: [0.22, 1, 0.36, 1] }}
+                    className="flex items-baseline gap-2 truncate text-sm text-foreground/80"
+                  >
+                    <span className="shrink-0 text-[10px] uppercase tracking-[0.3em] text-primary">Now playing</span>
+                    <span className="truncate font-medium">{caption.title}</span>
+                    {caption.detail && <span className="truncate text-muted-foreground">— {caption.detail}</span>}
+                  </motion.p>
+                </AnimatePresence>
+              </div>
+            )}
 
             <motion.p
               initial={{ opacity: 0, y: 16 }}

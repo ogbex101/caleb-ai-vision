@@ -8,9 +8,11 @@ import FAQSection from "@/components/FAQSection";
 import ContactSection from "@/components/ContactSection";
 import BrandLogo from "@/components/BrandLogo";
 import CategoryLinkBuilder from "@/components/CategoryLinkBuilder";
+import CategorySearch from "@/components/CategorySearch";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { usePageView } from "@/hooks/usePageView";
-import { useSiteLayout } from "@/hooks/usePortfolioItems";
+import { useSiteLayoutState } from "@/hooks/usePortfolioItems";
+import MaintenanceScreen from "@/components/MaintenanceScreen";
 
 const FaithNavbar = () => (
   <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
@@ -214,15 +216,34 @@ const FaithFooter = () => (
 
 const Faith = () => {
   usePageView({ username: "faith" });
-  usePageMeta("Faith K | Video Editing Portfolio", "Cinematic video editing and AI-assisted reels by Faith K.");
-  const layout = useSiteLayout("faith");
+  const { layout, loading } = useSiteLayoutState("faith");
+  usePageMeta(
+    layout?.seo_title || "Faith K | Video Editing Portfolio",
+    layout?.seo_description || "Cinematic video editing and AI-assisted reels by Faith K.",
+  );
   // Falls back to a local image until a hero is set via the admin dashboard
   const heroUrl = layout?.hero_media_url || heroBg;
   const isImage = layout?.hero_media_url ? layout?.hero_media_type === "image" : true;
+
+  // Nothing is rendered until the flag is known, so an unfinished layout never
+  // flashes into view before the gate closes.
+  if (loading) return <div className="min-h-screen bg-background" />;
+  if (layout?.maintenance_mode) {
+    return (
+      <MaintenanceScreen
+        displayName={layout.display_name || "Faith K"}
+        message={layout.maintenance_message}
+        variant="faith"
+        to="/faith"
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <FaithNavbar />
       <FaithHero heroUrl={heroUrl} isImage={isImage} />
+      <CategorySearch username="faith" />
       <FaithAbout />
       <CategoryLinkBuilder username="faith" />
       <section id="portfolio">

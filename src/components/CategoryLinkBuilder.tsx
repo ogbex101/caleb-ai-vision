@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Copy, Link2, Search, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { ASPECT_RATIOS, CATEGORIES, categoryPath, categoryUrl, getCategory } from "@/lib/categories";
+import { ASPECT_RATIOS, categoryPath, categoryUrl, getCategory } from "@/lib/categories";
+import { useCategories } from "@/hooks/useCategories";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -12,6 +13,7 @@ interface Props {
 }
 
 const CategoryLinkBuilder = ({ username, compact = false }: Props) => {
+  const categories = useCategories();
   const [cat, setCat] = useState("");
   const [sub, setSub] = useState("");
   const [ratio, setRatio] = useState("");
@@ -80,7 +82,7 @@ const CategoryLinkBuilder = ({ username, compact = false }: Props) => {
                 className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground text-sm focus:outline-none focus:border-primary/60 transition-colors"
               >
                 <option value="">Select a category…</option>
-                {CATEGORIES.map((c) => (
+                {categories.map((c) => (
                   <option key={c.slug} value={c.slug}>{c.label}</option>
                 ))}
               </select>
