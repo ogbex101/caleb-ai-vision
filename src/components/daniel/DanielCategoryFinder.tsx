@@ -1,17 +1,24 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Copy, Film } from "lucide-react";
+import { ArrowRight, Check, Copy, Film } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ASPECT_RATIOS, categoryPath, categoryUrl } from "@/lib/categories";
 import { useCategories } from "@/hooks/useCategories";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Reveal from "@/components/daniel/Reveal";
+import { useIsOwner } from "@/hooks/useIsOwner";
+import { withCampaign } from "@/lib/siteUrl";
 
 /**
  * Chip-based category picker instead of the dropdown card used on the
  * shared CategoryLinkBuilder, so it reads as a cinematic "reel finder"
  * unique to this profile.
+ *
+ * Visitors pick what they need and go straight to that work. The share-link
+ * tools (copy, campaign tag for outreach tracking) only appear when the owner
+ * is signed in to the admin dashboard in this browser, so a client never sees
+ * "paste it into your proposal" style controls.
  */
 const DanielCategoryFinder = () => {
   const categories = useCategories();
@@ -19,11 +26,16 @@ const DanielCategoryFinder = () => {
   const [sub, setSub] = useState("");
   const [ratio, setRatio] = useState("");
   const [copied, setCopied] = useState(false);
+  const [campaign, setCampaign] = useState("");
+  const isOwner = useIsOwner();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const subs = useMemo(() => categories.find((c) => c.slug === cat)?.subcategories ?? [], [categories, cat]);
-  const link = cat ? categoryUrl("daniel", cat, sub || null, ratio || null) : "";
+  const link = cat ? withCampaign(categoryUrl("daniel", cat, sub || null, ratio || null), campaign) : "";
+  const catLabel = categories.find((c) => c.slug === cat)?.label ?? "";
+  const subLabel = subs.find((s) => s.slug === sub)?.label ?? "";
+  const watch = () => navigate(`${categoryPath("daniel", cat, sub || null)}${ratio ? `?ratio=${encodeURIComponent(ratio)}` : ""}`);
 
   const copy = async () => {
     if (!link) return;
@@ -42,8 +54,14 @@ const DanielCategoryFinder = () => {
   return (
     <section id="search-category" className="px-6 py-24">
       <div className="mx-auto max-w-5xl">
-        <Reveal className="mb-10 flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-primary">
-          <Film className="h-3.5 w-3.5" /> Reel finder
+        <Reveal className="mb-10">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-primary">
+            <Film className="h-3.5 w-3.5" /> Reel finder
+          </div>
+          <h2 className="mt-4 font-display text-3xl font-bold md:text-5xl">See only the work you need.</h2>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+            Pick the kind of video you are planning, then watch every piece made in that style.
+          </p>
         </Reveal>
 
         <div className="space-y-8">
@@ -110,25 +128,48 @@ const DanielCategoryFinder = () => {
             </motion.div>
           )}
 
-          {link && (
+          {cat && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex flex-col gap-4 rounded-2xl border border-gold/40 bg-card/60 p-6 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Shareable link</p>
-                <p className="truncate font-mono text-sm text-foreground">{link}</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Your selection</p>
+                <p className="truncate font-display text-lg text-foreground">
+                  {catLabel}
+                  {subLabel ? ` / ${subLabel}` : ""}
+                </p>
               </div>
-              <div className="flex shrink-0 gap-3">
-                <button onClick={copy} className="flex items-center gap-2 rounded-full bg-gold px-5 py-2.5 text-sm font-display font-semibold text-gold-foreground transition-transform hover:scale-105">
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? "Copied" : "Copy"}
-                </button>
-                <button
-                  onClick={() => navigate(`${categoryPath("daniel", cat, sub || null)}${ratio ? `?ratio=${encodeURIComponent(ratio)}` : ""}`)}
-                  className="rounded-full border border-border px-5 py-2.5 text-sm font-medium hover:border-primary/60"
-                >
-                  Preview
+              <button
+                onClick={watch}
+                className="flex shrink-0 items-center justify-center gap-2 rounded-full bg-gold px-6 py-3 text-sm font-display font-semibold text-gold-foreground transition-transform hover:scale-105"
+              >
+                Watch this work <ArrowRight className="h-4 w-4" />
+              </button>
+            </motion.div>
+          )}
+          {isOwner && link && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4 rounded-2xl border border-dashed border-primary/40 bg-background/60 p-6"
+            >
+              <p className="text-xs uppercase tracking-wide text-primary">Owner only: share link</p>
+              <label className="block">
+                <span className="text-xs text-muted-foreground">Campaign tag (optional), e.g. us-dtc-week40. Visits from this link show under that campaign in Admin &gt; Analytics.</span>
+                <input
+                  value={campaign}
+                  onChange={(e) => setCampaign(e.target.value)}
+                  placeholder="outreach campaign"
+                  className="mt-2 w-full rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-foreground focus:border-gold/60 focus:outline-none"
+                  maxLength={60}
+                />
+              </label>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="min-w-0 truncate font-mono text-sm text-foreground">{link}</p>
+                <button onClick={copy} className="flex shrink-0 items-center justify-center gap-2 rounded-full bg-gold px-5 py-2.5 text-sm font-display font-semibold text-gold-foreground transition-transform hover:scale-105">
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? "Copied" : "Copy link"}
                 </button>
               </div>
             </motion.div>
