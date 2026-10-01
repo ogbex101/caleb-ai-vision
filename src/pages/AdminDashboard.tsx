@@ -9,6 +9,7 @@ import { refreshCategories, useCategories } from "@/hooks/useCategories";
 import { needsRehosting, videoSourceLabel } from "@/lib/videoSource";
 import CategoryTagsEditor from "@/components/admin/CategoryTagsEditor";
 import { VideoCompressionError, compressVideo, contentTypeFor, shouldCompress } from "@/lib/compressVideo";
+import { cleanEmail, whatsappLink } from "@/lib/contact";
 
 type SectionName = "analytics" | "hero" | "about" | "techStack" | "portfolio" | "categories" | "layouts" | "testimonials" | "messages" | "settings";
 
@@ -444,6 +445,11 @@ const AdminDashboard = () => {
       maintenance_message: layout.maintenance_message || null,
       seo_title: layout.seo_title || null,
       seo_description: layout.seo_description || null,
+      // Only sent once the contact columns exist (migration
+      // 20261001090000_add_site_layout_contact.sql), so saving never breaks
+      // on a database that has not been migrated yet.
+      ...("contact_email" in layout ? { contact_email: layout.contact_email?.trim() || null } : {}),
+      ...("whatsapp_number" in layout ? { whatsapp_number: layout.whatsapp_number?.trim() || null } : {}),
       active: layout.active,
       updated_at: new Date().toISOString(),
     }).eq("id", layout.id);
@@ -1340,8 +1346,8 @@ const AdminDashboard = () => {
               <div>
                 <h2 className="text-2xl font-display font-bold">Per-user settings</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Take a layout off the public site while you build it, and set the title and description search
-                  engines show for it.
+                  Take a layout off the public site while you build it, set the contact details visitors see, and set
+                  the title and description search engines show for it.
                 </p>
               </div>
 
@@ -1387,6 +1393,45 @@ const AdminDashboard = () => {
                     rows={2}
                     onChange={(v) => { const next = [...layouts]; next[i] = { ...layout, maintenance_message: v }; setLayouts(next); }}
                   />
+
+                  <div className="space-y-4 border-t border-border pt-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Contact details shown on the page</p>
+                    {"contact_email" in layout ? (
+                      <>
+                        <InputField
+                          label="Email visitors can write to"
+                          value={layout.contact_email || ""}
+                          placeholder="Leave blank to hide the email row"
+                          type="email"
+                          onChange={(v) => { const next = [...layouts]; next[i] = { ...layout, contact_email: v }; setLayouts(next); }}
+                        />
+                        {layout.contact_email && !cleanEmail(layout.contact_email) && (
+                          <p className="text-xs text-destructive">That doesn't look like a full email address, so it stays hidden until it's fixed.</p>
+                        )}
+                        <InputField
+                          label="WhatsApp number (international format)"
+                          value={layout.whatsapp_number || ""}
+                          placeholder="+234 807 866 0415, leave blank to hide"
+                          onChange={(v) => { const next = [...layouts]; next[i] = { ...layout, whatsapp_number: v }; setLayouts(next); }}
+                        />
+                        {layout.whatsapp_number && (
+                          whatsappLink(layout.whatsapp_number) ? (
+                            <p className="text-xs text-muted-foreground">Button will open {whatsappLink(layout.whatsapp_number)}</p>
+                          ) : (
+                            <p className="text-xs text-destructive">Add the country code (for Nigeria, +234 and drop the first 0). Without it the WhatsApp button cannot work, so it stays hidden.</p>
+                          )
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Empty fields are hidden on the public page, so visitors never see an address that doesn't reach you.
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Run the migration supabase/migrations/20261001090000_add_site_layout_contact.sql in your Supabase SQL editor to set a
+                        real email and WhatsApp number for this page. Until then the page shows the contact form only.
+                      </p>
+                    )}
+                  </div>
 
                   <div className="space-y-4 border-t border-border pt-4">
                     <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Search engine defaults</p>

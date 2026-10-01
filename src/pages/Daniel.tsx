@@ -90,7 +90,9 @@ const Daniel = () => {
         <DanielCategoryFinder />
         <DanielTestimonials />
         <DanielFAQ />
-        <section id="contact"><DanielContact /></section>
+        <section id="contact">
+          <DanielContact email={layout?.contact_email} whatsapp={layout?.whatsapp_number} displayName={layout?.display_name} />
+        </section>
       </main>
 
       <footer className="border-t border-border px-6 py-10">

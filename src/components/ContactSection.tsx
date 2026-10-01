@@ -1,10 +1,27 @@
 import { motion } from "framer-motion";
-import { Send, Mail, MapPin, Clock } from "lucide-react";
+import { Send, Mail, MapPin, Clock, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { cleanEmail, whatsappDisplay, whatsappLink } from "@/lib/contact";
 
-const ContactSection = () => {
+interface Props {
+  /** From site_layouts.contact_email. The row is hidden when it is empty. */
+  email?: string | null;
+  /** From site_layouts.whatsapp_number, international format. Hidden when empty. */
+  whatsapp?: string | null;
+}
+
+const ContactSection = ({ email, whatsapp }: Props = {}) => {
+  const mail = cleanEmail(email);
+  const waLink = whatsappLink(whatsapp);
+  const waText = whatsappDisplay(whatsapp);
+  const details = [
+    ...(mail ? [{ icon: Mail, label: "Email", value: mail, href: `mailto:${mail}` }] : []),
+    ...(waLink && waText ? [{ icon: MessageCircle, label: "WhatsApp", value: waText, href: waLink }] : []),
+    { icon: MapPin, label: "Location", value: "Lagos, Nigeria", href: null as string | null },
+    { icon: Clock, label: "Availability", value: "Mon - Sat, 9AM - 6PM", href: null as string | null },
+  ];
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
@@ -51,18 +68,25 @@ const ContactSection = () => {
 
         <div className="grid md:grid-cols-3 gap-8">
           <div className="space-y-6">
-            {[
-              { icon: Mail, label: "Email", value: "hello@calebpeters.com" },
-              { icon: MapPin, label: "Location", value: "Lagos, Nigeria" },
-              { icon: Clock, label: "Availability", value: "Mon - Sat, 9AM - 6PM" },
-            ].map((item) => (
+            {details.map((item) => (
               <div key={item.label} className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <item.icon className="w-5 h-5 text-primary" />
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">{item.label}</div>
-                  <div className="text-foreground font-medium">{item.value}</div>
+                  {item.href ? (
+                    <a
+                      href={item.href}
+                      target={item.href.startsWith("http") ? "_blank" : undefined}
+                      rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                      className="text-foreground font-medium underline-offset-4 hover:text-primary hover:underline"
+                    >
+                      {item.value}
+                    </a>
+                  ) : (
+                    <div className="text-foreground font-medium">{item.value}</div>
+                  )}
                 </div>
               </div>
             ))}
