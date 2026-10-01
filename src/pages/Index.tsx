@@ -20,7 +20,7 @@ const Index = () => {
   usePageMeta(
     layout?.seo_title || "AI Video Editing Portfolio | Cinematic Reels",
     layout?.seo_description ||
-      "Cinematic AI video and editing portfolio — talking head, UGC, b-roll, reels and long-form work, organised into shareable category reels.",
+      "Cinematic AI video and editing portfolio: talking head, UGC, b-roll, reels and long-form work, organised into shareable category reels.",
   );
 
   if (loading) return <div className="min-h-screen bg-background" />;
@@ -49,7 +49,7 @@ const Index = () => {
       </section>
       <FAQSection name="Caleb" />
       <section id="contact">
-        <ContactSection />
+        <ContactSection email={layout?.contact_email} whatsapp={layout?.whatsapp_number} />
       </section>
       <Footer />
     </div>
