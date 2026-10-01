@@ -29,11 +29,11 @@ export const PROFILES = [
   {
     file: "daniel.html",
     path: "/daniel",
-    title: "Daniel Studio | AI Film & Video Showreel",
+    title: "Daniel Studio | AI Film & Video by Daniel Ogbeifun Osewe",
     description:
-      "Generative AI films, ads and social edits directed, edited and finished in-house by Daniel Studio.",
+      "Generative AI films, ads and social edits, directed, edited and finished by Daniel Ogbeifun Osewe.",
     image: "/og/daniel.jpg",
-    author: "Daniel Studio",
+    author: "Daniel Ogbeifun Osewe",
   },
   {
     file: "faith.html",

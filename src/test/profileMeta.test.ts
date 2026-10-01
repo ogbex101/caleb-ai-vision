@@ -13,8 +13,8 @@ const daniel = PROFILES.find((p: { file: string }) => p.file === "daniel.html");
 describe("profile link previews", () => {
   it("gives the Daniel page its own title, description and absolute image", () => {
     const html = renderProfileHtml(BASE, daniel, "https://caleb-ai-vision.vercel.app");
-    expect(html).toContain("<title>Daniel Studio | AI Film &amp; Video Showreel</title>");
-    expect(html).toContain('<meta property="og:title" content="Daniel Studio | AI Film &amp; Video Showreel" />');
+    expect(html).toContain("<title>Daniel Studio | AI Film &amp; Video by Daniel Ogbeifun Osewe</title>");
+    expect(html).toContain('<meta property="og:title" content="Daniel Studio | AI Film &amp; Video by Daniel Ogbeifun Osewe" />');
     expect(html).toContain('<meta property="og:image" content="https://caleb-ai-vision.vercel.app/og/daniel.jpg" />');
     expect(html).toContain('<meta property="og:url" content="https://caleb-ai-vision.vercel.app/daniel" />');
     expect(html).not.toContain('content="old"');
