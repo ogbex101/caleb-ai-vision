@@ -6,23 +6,32 @@ import { ASPECT_RATIOS, categoryPath, categoryUrl, getCategory } from "@/lib/cat
 import { useCategories } from "@/hooks/useCategories";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useIsOwner } from "@/hooks/useIsOwner";
+import { withCampaign } from "@/lib/siteUrl";
 
 interface Props {
   username: string;
   compact?: boolean;
 }
 
+/**
+ * Owner tool for building deep links to paste into proposals and outreach.
+ * It renders only when the owner is signed in to the admin dashboard in this
+ * browser; visitors use CategorySearch instead.
+ */
 const CategoryLinkBuilder = ({ username, compact = false }: Props) => {
   const categories = useCategories();
   const [cat, setCat] = useState("");
   const [sub, setSub] = useState("");
   const [ratio, setRatio] = useState("");
   const [copied, setCopied] = useState(false);
+  const [campaign, setCampaign] = useState("");
+  const isOwner = useIsOwner();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const subs = useMemo(() => getCategory(cat)?.subcategories ?? [], [cat]);
-  const link = cat ? categoryUrl(username, cat, sub || null, ratio || null) : "";
+  const link = cat ? withCampaign(categoryUrl(username, cat, sub || null, ratio || null), campaign) : "";
 
   const copy = async () => {
     if (!link) return;
@@ -40,6 +49,8 @@ const CategoryLinkBuilder = ({ username, compact = false }: Props) => {
       .insert({ username, category_slug: cat, subcategory_slug: sub || null, url: link })
       .then(() => {});
   };
+
+  if (!isOwner) return null;
 
   return (
     <section id="search-category" className={compact ? "" : "py-24 px-6 relative overflow-hidden"}>
@@ -119,6 +130,16 @@ const CategoryLinkBuilder = ({ username, compact = false }: Props) => {
 
           {link && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+              <label className="block">
+                <span className="text-xs text-muted-foreground tracking-wide uppercase">Campaign tag (optional)</span>
+                <input
+                  value={campaign}
+                  onChange={(e) => setCampaign(e.target.value)}
+                  placeholder="e.g. us-dtc-week40, shows under that campaign in Admin > Analytics"
+                  maxLength={60}
+                  className="mt-1.5 w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground text-sm focus:outline-none focus:border-primary/60 transition-colors"
+                />
+              </label>
               <label className="text-xs text-muted-foreground block tracking-wide uppercase">Your shareable link</label>
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1 flex items-center gap-2 px-4 py-3 bg-background border border-primary/30 rounded-lg">

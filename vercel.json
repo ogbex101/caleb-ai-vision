@@ -1,5 +1,9 @@
 {
   "rewrites": [
+    { "source": "/daniel", "destination": "/daniel.html" },
+    { "source": "/daniel/:path*", "destination": "/daniel.html" },
+    { "source": "/faith", "destination": "/faith.html" },
+    { "source": "/faith/:path*", "destination": "/faith.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

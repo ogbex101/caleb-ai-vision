@@ -258,10 +258,10 @@ const CinematicHero = ({ heroUrl, isImage, items, tagline, parallaxLayers }: Pro
                 <Play className="h-4 w-4" /> Enter the showreel
               </a>
               <a
-                href="#search-category"
+                href="#contact"
                 className="inline-flex items-center gap-2 rounded-full border border-primary/30 px-6 py-3 font-display text-sm font-medium backdrop-blur-md transition-colors hover:border-primary hover:text-primary"
               >
-                Build a client link
+                Start a brief
               </a>
               {!isImage && (
                 <button

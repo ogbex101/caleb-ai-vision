@@ -1,3 +1,5 @@
+import { publicOrigin } from "@/lib/siteUrl";
+
 export interface SubCategory {
   slug: string;
   label: string;
@@ -149,7 +151,7 @@ export const categoryPath = (username: string, catSlug: string, subSlug?: string
   `/${username}/category-${catSlug}${subSlug ? `/${subSlug}` : ""}`;
 
 export const categoryUrl = (username: string, catSlug: string, subSlug?: string | null, ratio?: string | null) =>
-  `${typeof window !== "undefined" ? window.location.origin : ""}${categoryPath(username, catSlug, subSlug)}${ratio ? `?ratio=${encodeURIComponent(ratio)}` : ""}`;
+  `${publicOrigin()}${categoryPath(username, catSlug, subSlug)}${ratio ? `?ratio=${encodeURIComponent(ratio)}` : ""}`;
 
 /** Parses a `category-ai-video` style path segment. */
 export const parseCategoryParam = (param?: string) =>

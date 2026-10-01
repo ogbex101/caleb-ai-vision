@@ -23,8 +23,8 @@ const Daniel = () => {
   usePageView({ username: "daniel" });
   const { layout, loading: layoutLoading } = useSiteLayoutState("daniel");
   usePageMeta(
-    layout?.seo_title || "Daniel Studio | AI Film & Video Showreel",
-    layout?.seo_description || "Generative AI films, ads and social edits directed, edited and finished in-house by Daniel Studio.",
+    layout?.seo_title || "Daniel Studio | AI Film & Video by Daniel Ogbeifun Osewe",
+    layout?.seo_description || "Generative AI films, ads and social edits, directed, edited and finished by Daniel Ogbeifun Osewe.",
   );
   const { items, loading } = usePortfolioItems({ featuredOnly: true });
   const { items: allItems } = usePortfolioItems();
@@ -90,13 +90,15 @@ const Daniel = () => {
         <DanielCategoryFinder />
         <DanielTestimonials />
         <DanielFAQ />
-        <section id="contact"><DanielContact /></section>
+        <section id="contact">
+          <DanielContact email={layout?.contact_email} whatsapp={layout?.whatsapp_number} displayName={layout?.display_name} />
+        </section>
       </main>
 
       <footer className="border-t border-border px-6 py-10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-5 md:flex-row">
           <BrandLogo variant="daniel" to="/daniel" />
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Daniel Studio. Motion with intent.</p>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Daniel Studio by Daniel Ogbeifun Osewe. Motion with intent.</p>
         </div>
       </footer>
     </div>

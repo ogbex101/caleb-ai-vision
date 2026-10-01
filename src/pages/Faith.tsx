@@ -254,7 +254,7 @@ const Faith = () => {
       </section>
       <FAQSection name="Faith" />
       <section id="contact">
-        <ContactSection />
+        <ContactSection email={layout?.contact_email} whatsapp={layout?.whatsapp_number} />
       </section>
       <FaithFooter />
     </div>

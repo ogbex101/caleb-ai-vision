@@ -1,15 +1,34 @@
 import { motion } from "framer-motion";
-import { Clapperboard, Clock, Mail, MapPin, Send } from "lucide-react";
+import { Clapperboard, Clock, Mail, MapPin, MessageCircle, Send } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Reveal from "@/components/daniel/Reveal";
+import { cleanEmail, whatsappDisplay, whatsappLink } from "@/lib/contact";
+
+interface Props {
+  /** From site_layouts.contact_email. The row is hidden when it is empty. */
+  email?: string | null;
+  /** From site_layouts.whatsapp_number, international format. Hidden when empty. */
+  whatsapp?: string | null;
+  displayName?: string | null;
+}
 
 /**
  * Styled as a "call sheet": a dark slate panel of production details next
  * to the form, rather than the icon-list + form grid used elsewhere.
  */
-const DanielContact = () => {
+const DanielContact = ({ email, whatsapp, displayName }: Props) => {
+  const studioName = displayName?.trim() || "Daniel Studio";
+  const mail = cleanEmail(email);
+  const waLink = whatsappLink(whatsapp);
+  const waText = whatsappDisplay(whatsapp);
+  const rows = [
+    ...(mail ? [{ icon: Mail, label: "Email", value: mail, href: `mailto:${mail}` }] : []),
+    ...(waLink && waText ? [{ icon: MessageCircle, label: "WhatsApp", value: waText, href: waLink }] : []),
+    { icon: MapPin, label: "Based in", value: "Lagos, Nigeria (remote worldwide)", href: null as string | null },
+    { icon: Clock, label: "Response time", value: "Within 1 business day", href: null as string | null },
+  ];
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
@@ -24,14 +43,14 @@ const DanielContact = () => {
     const { error } = await supabase.from("contact_messages").insert({
       name: form.name.trim(),
       email: form.email.trim(),
-      subject: form.subject.trim() || "Daniel Studio inquiry",
+      subject: form.subject.trim() || `${studioName} inquiry`,
       message: form.message.trim(),
     });
     setLoading(false);
     if (error) {
       toast({ title: "Failed to send message", variant: "destructive" });
     } else {
-      toast({ title: "Brief received", description: "Daniel Studio will follow up shortly." });
+      toast({ title: "Brief received", description: "You'll get a reply within one business day." });
       setForm({ name: "", email: "", subject: "", message: "" });
     }
   };
@@ -47,19 +66,26 @@ const DanielContact = () => {
             </div>
             <h2 className="mt-5 font-display text-3xl font-bold md:text-4xl">Start the brief.</h2>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Send the concept, references and timeline. A director from the studio replies within one business day.
+              Send the concept, references and timeline. You'll get a reply within one business day.
             </p>
             <div className="mt-10 space-y-6">
-              {[
-                { icon: Mail, label: "Email", value: "studio@danielstudio.ai" },
-                { icon: MapPin, label: "Based in", value: "Lagos, Nigeria (remote worldwide)" },
-                { icon: Clock, label: "Response time", value: "Within 1 business day" },
-              ].map((row) => (
+              {rows.map((row) => (
                 <div key={row.label} className="flex items-start gap-4">
                   <row.icon className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
                   <div>
                     <div className="text-xs uppercase tracking-wide text-muted-foreground">{row.label}</div>
-                    <div className="font-medium text-foreground">{row.value}</div>
+                    {row.href ? (
+                      <a
+                        href={row.href}
+                        target={row.href.startsWith("http") ? "_blank" : undefined}
+                        rel={row.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                        className="font-medium text-foreground underline-offset-4 hover:text-gold hover:underline"
+                      >
+                        {row.value}
+                      </a>
+                    ) : (
+                      <div className="font-medium text-foreground">{row.value}</div>
+                    )}
                   </div>
                 </div>
               ))}
