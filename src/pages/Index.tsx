@@ -36,7 +36,10 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <HeroSection />
+      <HeroSection
+        heroUrl={layout?.hero_media_url}
+        isImage={layout?.hero_media_url ? layout?.hero_media_type === "image" : true}
+      />
       <CategorySearch username="caleb" />
       <AboutSection />
       <TechStackSection />

@@ -1,112 +1,170 @@
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
 import { ArrowDown, Play, Sparkles } from "lucide-react";
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
 
-const title = ["Caleb", "Peters"];
+const TITLE = ["Caleb", "Peters"];
 
-const HeroSection = () => {
+interface Props {
+  /** Showreel or still set in Admin > Layouts; falls back to the bundled image. */
+  heroUrl?: string | null;
+  isImage?: boolean;
+}
+
+/**
+ * The headline is a window onto the showreel: a layer filled with the page
+ * background sits over the media in `mix-blend-mode: multiply`, with the type
+ * in pure white. Multiply leaves the backdrop untouched wherever the layer is
+ * white, so the footage plays inside the letters, while the surrounding fill
+ * (4% lightness) multiplies the video down to near-black.
+ *
+ * It degrades honestly: a browser without mix-blend-mode support just shows
+ * white type on a dark plate, which is the design it replaced.
+ */
+const HeroSection = ({ heroUrl, isImage = true }: Props) => {
+  const sectionRef = useRef<HTMLElement>(null);
+  const reduceMotion = useReducedMotion();
+  const mediaSrc = heroUrl || heroBg;
+  const showVideo = Boolean(heroUrl) && !isImage;
+
+  // Cursor-driven tilt. Springs rather than raw values, so the plate settles
+  // instead of snapping, and it is skipped entirely for reduced motion.
+  const pointerX = useMotionValue(0);
+  const pointerY = useMotionValue(0);
+  const tiltX = useSpring(useTransform(pointerY, [-0.5, 0.5], [6, -6]), { stiffness: 120, damping: 20 });
+  const tiltY = useSpring(useTransform(pointerX, [-0.5, 0.5], [-9, 9]), { stiffness: 120, damping: 20 });
+
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] });
+  // The media, the type and the supporting copy travel at three different
+  // rates: that mismatch is what reads as depth rather than a flat overlay.
+  const mediaY = useTransform(scrollYProgress, [0, 1], ["0%", "18%"]);
+  const mediaScale = useTransform(scrollYProgress, [0, 1], [1, 1.12]);
+  const typeY = useTransform(scrollYProgress, [0, 1], ["0%", "-22%"]);
+  const copyY = useTransform(scrollYProgress, [0, 1], ["0%", "-8%"]);
+  const copyOpacity = useTransform(scrollYProgress, [0, 0.55], [1, 0]);
+
+  const handlePointer = (e: React.PointerEvent<HTMLElement>) => {
+    if (reduceMotion) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    pointerX.set((e.clientX - rect.left) / rect.width - 0.5);
+    pointerY.set((e.clientY - rect.top) / rect.height - 0.5);
+  };
+
+  const resetPointer = () => {
+    pointerX.set(0);
+    pointerY.set(0);
+  };
+
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Cinematic background image (swap for your own hosted video later via Supabase Storage) */}
-      <div className="absolute inset-0">
-        <motion.img
-          initial={{ scale: 1.15, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 2.2, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full h-full object-cover"
-          src={heroBg}
-          alt=""
+    <section
+      ref={sectionRef}
+      onPointerMove={handlePointer}
+      onPointerLeave={resetPointer}
+      className="relative flex min-h-screen items-center justify-center overflow-hidden"
+      style={{ perspective: 1200 }}
+    >
+      {/* Media plate */}
+      <motion.div style={{ y: mediaY, scale: mediaScale }} className="absolute inset-0">
+        {showVideo ? (
+          <video src={mediaSrc} autoPlay muted loop playsInline poster={heroBg} className="h-full w-full object-cover" />
+        ) : (
+          <motion.img
+            initial={{ scale: reduceMotion ? 1 : 1.15, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: reduceMotion ? 0.4 : 2.2, ease: [0.22, 1, 0.36, 1] }}
+            className="h-full w-full object-cover"
+            src={mediaSrc}
+            alt=""
+          />
+        )}
+        {/* Only a seat for the type — the picture stays bright inside the letters */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-transparent to-background" />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.06]"
+          style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent 0, transparent 2px, hsl(var(--foreground)) 2px, hsl(var(--foreground)) 3px)" }}
         />
-        {/* Layered cinematic overlays */}
-        <div className="absolute inset-0 bg-background/60" />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background" />
-        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 30%, hsl(var(--background) / 0.85) 90%)" }} />
-        {/* Film scan lines */}
-        <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent 0, transparent 2px, hsl(var(--foreground)) 2px, hsl(var(--foreground)) 3px)" }} />
-      </div>
+      </motion.div>
 
-      <div className="absolute inset-0 bg-grid opacity-20" />
+      <div className="pointer-events-none absolute inset-0 bg-grid opacity-20" />
+
+      {/* The knockout. Fills the frame with the page background and punches the
+          name out of it, so the footage shows only inside the glyphs. */}
       <motion.div
-        className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/15 rounded-full blur-[120px]"
-        animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
-        transition={{ duration: 6, repeat: Infinity }}
-      />
-      <motion.div
-        className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-accent/15 rounded-full blur-[100px]"
-        animate={{ scale: [1.2, 1, 1.2], opacity: [0.5, 0.3, 0.5] }}
-        transition={{ duration: 8, repeat: Infinity }}
-      />
-
-      <div className="relative z-10 text-center px-6 max-w-5xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-        >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 mb-8 text-xs font-medium tracking-[0.25em] uppercase border border-primary/40 rounded-full text-primary bg-primary/5 backdrop-blur-md">
-            <Sparkles className="w-3 h-3" />
-            AI Video Editor & Creator
-          </span>
-        </motion.div>
-
-        <h1 className="text-6xl md:text-8xl lg:text-9xl font-display font-bold leading-[0.95] mb-8 tracking-tight">
-          {title.map((word, wi) => (
-            <span key={word} className="inline-block overflow-hidden mr-4 last:mr-0">
+        aria-hidden
+        style={{ y: typeY, rotateX: reduceMotion ? 0 : tiltX, rotateY: reduceMotion ? 0 : tiltY, mixBlendMode: "multiply" }}
+        className="absolute inset-0 flex items-center justify-center bg-background"
+      >
+        <h1 className="px-6 text-center font-display text-[19vw] font-bold uppercase leading-[0.82] tracking-[-0.03em] text-white md:text-[13vw]">
+          {TITLE.map((word, i) => (
+            <span key={word} className="block overflow-hidden">
               <motion.span
-                className={`inline-block ${wi === 1 ? "gradient-text text-glow" : "text-foreground"}`}
-                initial={{ y: "110%", opacity: 0 }}
-                animate={{ y: "0%", opacity: 1 }}
-                transition={{ duration: 1, delay: 0.6 + wi * 0.15, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ y: reduceMotion ? "0%" : "110%" }}
+                animate={{ y: "0%" }}
+                transition={{ duration: reduceMotion ? 0.3 : 1.2, delay: reduceMotion ? 0 : 0.25 + i * 0.12, ease: [0.22, 1, 0.36, 1] }}
+                className="block"
               >
                 {word}
               </motion.span>
             </span>
           ))}
         </h1>
+      </motion.div>
+
+      {/* The same name, invisible, carrying the real heading for assistive tech
+          and search engines: the knockout above is decorative. */}
+      <h1 className="sr-only">{TITLE.join(" ")}</h1>
+
+      {/* Supporting copy sits clear of the knockout, in normal blending */}
+      <motion.div style={{ y: copyY, opacity: copyOpacity }} className="relative z-10 mx-auto max-w-5xl px-6 text-center">
+        <div className="pointer-events-none h-[34vh] md:h-[30vh]" />
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.5 }}>
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/5 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.25em] text-primary backdrop-blur-md">
+            <Sparkles className="h-3 w-3" />
+            AI Video Editor &amp; Creator
+          </span>
+        </motion.div>
 
         <motion.p
-          className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed"
+          className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-foreground/80 md:text-lg"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.1 }}
+          transition={{ duration: 0.8, delay: 0.8 }}
         >
-          Transforming raw footage into cinematic masterpieces with the power of artificial intelligence. Where creativity meets cutting-edge technology.
+          Transforming raw footage into cinematic masterpieces with the power of artificial intelligence.
+          Where creativity meets cutting-edge technology.
         </motion.p>
 
         <motion.div
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+          className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.3 }}
+          transition={{ duration: 0.8, delay: 1 }}
         >
           <Link
             to="/portfolio"
-            className="group relative flex items-center gap-2 px-8 py-4 bg-primary text-primary-foreground font-display font-semibold rounded-lg hover:shadow-[var(--shadow-glow)] hover:scale-105 transition-all duration-300 overflow-hidden"
+            className="group relative flex items-center gap-2 overflow-hidden rounded-lg bg-primary px-8 py-4 font-display font-semibold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[var(--shadow-glow)]"
           >
-            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-            <Play className="w-5 h-5 relative" />
+            <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
+            <Play className="relative h-5 w-5" />
             <span className="relative">View My Work</span>
           </Link>
           <a
-            href="#about"
-            className="flex items-center gap-2 px-8 py-4 border border-border text-foreground font-display font-medium rounded-lg hover:border-primary/50 hover:bg-primary/5 backdrop-blur-md transition-all duration-300"
+            href="#find-a-video"
+            className="rounded-lg border border-border px-8 py-4 font-display font-medium text-foreground backdrop-blur-md transition-all duration-300 hover:border-primary/50 hover:bg-primary/5"
           >
-            Learn More
+            Find your niche
           </a>
         </motion.div>
-      </div>
+      </motion.div>
 
       <motion.div
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 2 }}
+        animate={reduceMotion ? undefined : { y: [0, 8, 0] }}
+        transition={{ duration: 2, repeat: Infinity }}
+        className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 text-primary/80"
       >
-        <span className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground">Scroll</span>
-        <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 2, repeat: Infinity }}>
-          <ArrowDown className="w-4 h-4 text-primary" />
-        </motion.div>
+        <ArrowDown className="h-5 w-5" />
       </motion.div>
     </section>
   );
