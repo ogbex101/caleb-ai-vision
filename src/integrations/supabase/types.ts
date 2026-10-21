@@ -171,6 +171,7 @@ export type Database = {
           created_at: string
           description: string | null
           featured: boolean
+          premium: boolean
           full_video_url: string | null
           id: string
           preview_seconds: number
@@ -189,6 +190,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           featured?: boolean
+          premium?: boolean
           full_video_url?: string | null
           id?: string
           preview_seconds?: number
@@ -207,6 +209,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           featured?: boolean
+          premium?: boolean
           full_video_url?: string | null
           id?: string
           preview_seconds?: number

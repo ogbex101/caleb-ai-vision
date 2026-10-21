@@ -9,6 +9,11 @@ import ContactSection from "@/components/ContactSection";
 import Footer from "@/components/Footer";
 import CategoryLinkBuilder from "@/components/CategoryLinkBuilder";
 import CategorySearch from "@/components/CategorySearch";
+import PremiumWorkSection from "@/components/PremiumWorkSection";
+import BeforeAfterSection from "@/components/BeforeAfterSection";
+import ServicesSection from "@/components/ServicesSection";
+import ProcessSection from "@/components/ProcessSection";
+import ClientResultsSection from "@/components/ClientResultsSection";
 import { usePageView } from "@/hooks/usePageView";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useSiteLayoutState } from "@/hooks/usePortfolioItems";
@@ -41,12 +46,17 @@ const Index = () => {
         isImage={layout?.hero_media_url ? layout?.hero_media_type === "image" : true}
       />
       <CategorySearch username="caleb" />
+      <PremiumWorkSection />
+      <ClientResultsSection />
       <AboutSection />
+      <BeforeAfterSection />
       <TechStackSection />
       <CategoryLinkBuilder username="caleb" />
       <section id="portfolio">
         <PortfolioSection />
       </section>
+      <ProcessSection />
+      <ServicesSection />
       <section id="testimonials">
         <TestimonialsSection username="caleb" />
       </section>

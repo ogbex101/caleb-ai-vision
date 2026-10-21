@@ -8,8 +8,10 @@ const Navbar = () => {
         <BrandLogo variant="caleb" to="/" />
         <div className="hidden md:flex items-center gap-8">
           {[
+            { label: "Premium", href: "#premium-work" },
             { label: "About", href: "#about" },
             { label: "Work", href: "#portfolio" },
+            { label: "Services", href: "#services" },
             { label: "Testimonials", href: "#testimonials" },
             { label: "FAQ", href: "#faq" },
             { label: "Contact", href: "#contact" },

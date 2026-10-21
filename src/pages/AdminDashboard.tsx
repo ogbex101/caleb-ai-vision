@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2, BarChart3, Eye, Copy, Users, Image as ImageIcon, Play, Tags } from "lucide-react";
+import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2, BarChart3, Eye, Copy, Users, Image as ImageIcon, Play, Tags, Gem } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { ASPECT_RATIOS, MAX_CATEGORY_TAGS, getCategory, readTags, tagsMatch, type CategoryTag } from "@/lib/categories";
 import { refreshCategories, useCategories } from "@/hooks/useCategories";
@@ -33,6 +33,13 @@ interface TaxonomyRecord {
   blurb: string | null;
   sort_order: number | string | null;
 }
+
+/** PostgREST's code for "this column is not in the schema cache", i.e. the
+ *  migration that adds it has not been applied to this project yet. */
+const MISSING_COLUMN = "PGRST204";
+
+const isMissingColumn = (error: { code?: string; message?: string } | null) =>
+  error?.code === MISSING_COLUMN || Boolean(error?.message?.includes("schema cache"));
 
 /** sort_order as a number, whether it is mid-edit as a string or stored. */
 const orderOf = (row: { sort_order?: number | string | null }) => Number(row.sort_order) || 0;
@@ -297,11 +304,33 @@ const AdminDashboard = () => {
       category_tags: tags,
       preview_seconds: item.preview_seconds || 30, aspect_ratio: item.aspect_ratio || "16:9",
     }).eq("id", item.id);
-    toast({
-      title: error ? "Failed to save" : `${item.title} updated!`,
-      description: error?.message,
-      variant: error ? "destructive" : "default",
-    });
+
+    if (error) {
+      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    // Written on its own so a database that has not had the premium migration
+    // applied still saves everything else. Bundling it into the update above
+    // would make every save fail with a 400 until the migration runs.
+    const { error: premiumError } = await supabase
+      .from("portfolio_items")
+      .update({ premium: Boolean(item.premium) })
+      .eq("id", item.id);
+
+    if (premiumError && isMissingColumn(premiumError)) {
+      toast({
+        title: `${item.title} updated, except Premium`,
+        description: "Run supabase/migrations/20261021190000_add_portfolio_premium.sql in the Supabase SQL editor to enable the Premium Work section.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (premiumError) {
+      toast({ title: `${item.title} updated, except Premium`, description: premiumError.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: `${item.title} updated!` });
   };
 
   // Bulk upload: one portfolio item per file, filename becomes the title
@@ -955,6 +984,14 @@ const AdminDashboard = () => {
                         <Star className={`w-5 h-5 ${item.featured ? 'fill-primary' : ''}`} />
                       </button>
                       <span className="text-sm font-medium text-foreground">{item.title || "Untitled"}</span>
+                      <button
+                        onClick={() => { const u = [...portfolio]; u[i] = { ...u[i], premium: !u[i].premium }; setPortfolio(u); }}
+                        className={`rounded-lg p-1.5 transition-colors ${item.premium ? "bg-amber-400/15 text-amber-400" : "text-muted-foreground hover:text-amber-400"}`}
+                        title={item.premium ? "Remove from Premium Work" : "Add to Premium Work (save to apply)"}
+                        aria-pressed={Boolean(item.premium)}
+                      >
+                        <Gem className={`h-5 w-5 ${item.premium ? "fill-amber-400/30" : ""}`} />
+                      </button>
                       {needsRehosting(item.video_url) && (
                         <span
                           title="This preview URL is a share page, not a video file, so it cannot play inline. Re-upload the file here."
