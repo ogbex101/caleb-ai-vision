@@ -24,7 +24,11 @@ npm run dev
 
 ## Database
 
-Migrations are in `supabase/migrations`. Run any new file in the Supabase SQL editor (or `supabase db push`) before deploying code that uses it. The admin dashboard tells you when a setting needs a migration that hasn't been applied yet.
+Migrations are in `supabase/migrations`. **Nothing applies them automatically** — merging to `main` and deploying to Vercel ships the frontend only. Run each new file in the Supabase SQL editor (or `supabase db push`) before deploying code that uses it, or every admin action writing a new column fails with a 400 (`PGRST204: could not find the column in the schema cache`).
+
+To find out which migrations a project is missing, paste `supabase/verify_schema.sql` into the Supabase SQL editor. It is read-only and lists every table and column the dashboard writes to, flagging the missing ones with the migration that adds them.
+
+`supabase/config.toml` must hold the ref of the project the site actually points at, i.e. the one in `VITE_SUPABASE_URL` in Vercel. It is what `supabase link` and `supabase db push` target, so a stale ref there silently applies migrations to the wrong project.
 
 Admin accounts are Supabase Auth users with the `admin` role in `user_roles`. Never put a password in this repository: it is public.
 
