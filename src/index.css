@@ -2,7 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+/* Fonts are loaded by <link> in index.html, not imported here: a CSS
+   @import blocks rendering until it resolves and Vite warns about its
+   position relative to @tailwind. */
 
 @layer base {
   :root {
@@ -66,11 +68,11 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
+    font-feature-settings: 'ss01', 'cv01';
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', sans-serif;
+    @apply font-display;
   }
 }
 

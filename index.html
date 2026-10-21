@@ -7,6 +7,17 @@
     <meta name="description" content="Cinematic AI video and editing portfolio: talking head, UGC, b-roll, reels and long-form work, organised into shareable category reels." />
     <meta name="author" content="Caleb Peters" />
 
+    <!-- Clash Display (headings) + Satoshi (body), from Fontshare. Loaded here
+         rather than via @import in index.css so the browser can start fetching
+         them while the stylesheet is still parsing. If Fontshare is ever
+         unreachable the stacks in tailwind.config.ts fall back to the visitor's
+         system UI font, which still looks deliberate. -->
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://api.fontshare.com/v2/css?f%5B%5D=clash-display@400,500,600,700&f%5B%5D=satoshi@300,400,500,700,900&display=swap"
+    />
+
     <!-- Link previews. scripts/profile-meta.mjs rewrites these per profile after the build. -->
     <meta property="og:title" content="AI Video Editing Portfolio | Cinematic Reels" />
     <meta property="og:description" content="Cinematic AI video and editing portfolio: talking head, UGC, b-roll, reels and long-form work, organised into shareable category reels." />

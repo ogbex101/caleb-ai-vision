@@ -14,8 +14,12 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
-        display: ["Space Grotesk", "sans-serif"],
+        // Satoshi for body, Clash Display for headings. The fallbacks are the
+        // visitor's own UI font rather than a generic serif, so a blocked or
+        // slow Fontshare request degrades to something that still looks
+        // intentional instead of Times New Roman.
+        sans: ['Satoshi', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        display: ['"Clash Display"', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
