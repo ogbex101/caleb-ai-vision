@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useCategories } from "@/hooks/useCategories";
 import { usePortfolioItems } from "@/hooks/usePortfolioItems";
 import { type SearchHit, type SearchHitKind, buildSearchIndex, searchHits } from "@/lib/videoSearch";
+import { iconForKind } from "@/lib/categoryIcons";
 
 interface Props {
   username: string;
@@ -150,9 +151,21 @@ const CategorySearch = ({ username, bare = false }: Props) => {
                         i === cursor ? "bg-primary/10" : "hover:bg-muted/50"
                       }`}
                     >
-                      <span className="mt-0.5 shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                        {KIND_LABEL[hit.kind]}
-                      </span>
+                      {(() => {
+                        // A picture of the niche reads faster than its name.
+                        const Icon = iconForKind(hit.kind, hit.slug);
+                        return (
+                          <span
+                            aria-hidden
+                            className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border transition-colors ${
+                              i === cursor ? "border-primary/50 bg-primary/15 text-primary" : "border-border bg-muted/40 text-muted-foreground"
+                            }`}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </span>
+                        );
+                      })()}
+                      <span className="sr-only">{KIND_LABEL[hit.kind]}: </span>
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium text-foreground">
                           {hit.title}

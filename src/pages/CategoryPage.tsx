@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, Film } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import BrandLogo from "@/components/BrandLogo";
 import CategoryLinkBuilder from "@/components/CategoryLinkBuilder";
@@ -10,6 +10,7 @@ import { usePageView } from "@/hooks/usePageView";
 import { usePortfolioItems, useSiteLayoutState } from "@/hooks/usePortfolioItems";
 import MaintenanceScreen from "@/components/MaintenanceScreen";
 import { ASPECT_RATIOS, getCategory, getSubCategory, parseCategoryParam, USERNAMES, type Username } from "@/lib/categories";
+import { categoryIcon, nicheIcon } from "@/lib/categoryIcons";
 
 const displayNames: Record<Username, string> = {
   caleb: "Caleb Peters",
@@ -65,6 +66,7 @@ const CategoryPage = () => {
   const home = username === "caleb" ? "/" : `/${username}`;
   const logoVariant = username === "faith" ? "faith" : username === "daniel" ? "daniel" : "caleb";
   const title = sub ? `${category.label} / ${sub.label}` : category.label;
+  const PageIcon = sub ? nicheIcon(sub.slug) : categoryIcon(category.slug);
   const blurb = sub?.blurb ?? category.blurb;
 
   return (
@@ -82,8 +84,15 @@ const CategoryPage = () => {
         <section className="relative overflow-hidden border-b border-border/60 px-6 pb-16 pt-20">
           <div className="absolute inset-0 bg-grid opacity-10" />
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="relative mx-auto max-w-6xl">
-            <div className="mb-5 inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.28em] text-primary">
-              <Film className="h-4 w-4" /> Curated reel
+            {/* The niche's own icon, so the page announces what kind of work
+                it holds before the heading is read. */}
+            <div className="mb-5 inline-flex items-center gap-3">
+              <span className="grid h-11 w-11 place-items-center rounded-xl border border-primary/40 bg-primary/10 text-primary">
+                <PageIcon className="h-5 w-5" />
+              </span>
+              <span className="text-xs font-medium uppercase tracking-[0.28em] text-primary">
+                {sub ? "Niche reel" : "Curated reel"}
+              </span>
             </div>
             <h1 className="max-w-4xl font-display text-4xl font-bold leading-tight md:text-7xl">{title}</h1>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">{blurb}</p>

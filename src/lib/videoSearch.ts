@@ -5,6 +5,8 @@ export type SearchHitKind = "category" | "subcategory" | "video";
 export interface SearchHit {
   id: string;
   kind: SearchHitKind;
+  /** The category or niche slug, used to pick this hit's icon. */
+  slug: string;
   title: string;
   /** Parent category, or the video's category — shown after the title. */
   context: string | null;
@@ -38,6 +40,7 @@ export const buildSearchIndex = (
     hits.push({
       id: `c:${cat.slug}`,
       kind: "category",
+      slug: cat.slug,
       title: cat.label,
       context: null,
       hint: cat.blurb || null,
@@ -48,6 +51,7 @@ export const buildSearchIndex = (
       hits.push({
         id: `s:${cat.slug}:${sub.slug}`,
         kind: "subcategory",
+        slug: sub.slug,
         title: sub.label,
         context: cat.label,
         hint: sub.blurb || null,
@@ -61,6 +65,7 @@ export const buildSearchIndex = (
     hits.push({
       id: `v:${item.id}`,
       kind: "video",
+      slug: tag?.subcategory || tag?.category || "",
       title: item.title,
       context: tag ? getCategory(tag.category)?.label ?? null : null,
       hint: item.client_name || item.description || null,
