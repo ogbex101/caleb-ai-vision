@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2, BarChart3, Eye, Copy, Users, Image as ImageIcon, Play, Tags, Gem } from "lucide-react";
+import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2, BarChart3, Eye, Copy, Users, Image as ImageIcon, Play, Tags, Gem, Camera } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { ASPECT_RATIOS, MAX_CATEGORY_TAGS, getCategory, readTags, tagsMatch, type CategoryTag } from "@/lib/categories";
 import { refreshCategories, useCategories } from "@/hooks/useCategories";
 import { needsRehosting, videoSourceLabel } from "@/lib/videoSource";
+import { PosterError, posterFromVideo } from "@/lib/posterFromVideo";
+import { driveLinkWarning } from "@/lib/driveLink";
 import CategoryTagsEditor from "@/components/admin/CategoryTagsEditor";
 import { VideoCompressionError, compressVideo, contentTypeFor, shouldCompress } from "@/lib/compressVideo";
 import { cleanEmail, whatsappLink } from "@/lib/contact";
@@ -125,6 +127,7 @@ const AdminDashboard = () => {
   const [videoClicks, setVideoClicks] = useState<any[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>("all");
   const [taxonomy, setTaxonomy] = useState<TaxonomyRecord[]>([]);
+  const [posterBusy, setPosterBusy] = useState<string | null>(null);
   const [newCategory, setNewCategory] = useState({ label: "", slug: "" });
   const [newSub, setNewSub] = useState<Record<string, { label: string; slug: string }>>({});
 
@@ -291,6 +294,56 @@ const AdminDashboard = () => {
     setUploadingIndex(null);
   };
 
+  /**
+   * Takes a still from a video the admin picks and stores only that image.
+   *
+   * The video itself never leaves the machine: it is decoded locally and one
+   * frame is uploaded, a couple of hundred KB instead of hundreds of MB. That
+   * is what makes a Drive-hosted library workable on a small storage plan.
+   */
+  const generatePoster = async (index: number, videoFile: File) => {
+    const item = portfolio[index];
+    setPosterBusy(item.id);
+    try {
+      const poster = await posterFromVideo(videoFile);
+
+      const path = `posters/${item.id}-${Date.now()}.jpg`;
+      const { error: upErr } = await supabase.storage
+        .from("portfolio-videos")
+        .upload(path, poster, { contentType: "image/jpeg", upsert: true, cacheControl: "3600" });
+      if (upErr) {
+        toast({ title: "Could not store the poster", description: upErr.message, variant: "destructive" });
+        return;
+      }
+
+      const { data } = supabase.storage.from("portfolio-videos").getPublicUrl(path);
+      const { error } = await supabase
+        .from("portfolio_items")
+        .update({ thumbnail_url: data.publicUrl })
+        .eq("id", item.id);
+      if (error) {
+        toast({ title: "Poster stored but not saved", description: error.message, variant: "destructive" });
+        return;
+      }
+
+      const next = [...portfolio];
+      next[index] = { ...next[index], thumbnail_url: data.publicUrl };
+      setPortfolio(next);
+      toast({
+        title: "Poster generated",
+        description: `${Math.round(poster.size / 1024)}KB stored. The video stayed on your machine.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Could not read a frame from that video",
+        description: err instanceof PosterError ? err.message : "The browser could not decode this file.",
+        variant: "destructive",
+      });
+    } finally {
+      setPosterBusy(null);
+    }
+  };
+
   const savePortfolioItem = async (item: any) => {
     const tags: CategoryTag[] = readTags(item).slice(0, MAX_CATEGORY_TAGS);
     const primary = tags[0];
@@ -298,7 +351,8 @@ const AdminDashboard = () => {
       title: item.title, description: item.description, client_name: item.client_name,
       category: getCategory(primary?.category)?.label || item.category || null,
       featured: item.featured, video_url: item.video_url,
-      full_video_url: item.full_video_url, sort_order: item.sort_order,
+      full_video_url: item.full_video_url, thumbnail_url: item.thumbnail_url || null,
+      sort_order: item.sort_order,
       category_slug: primary?.category || null,
       subcategory_slug: primary?.subcategory || null,
       category_tags: tags,
@@ -1088,12 +1142,67 @@ const AdminDashboard = () => {
 
 
 
-                  <InputField
-                    label="Full Video Link (Google Drive, YouTube, Vimeo, etc.)"
-                    value={item.full_video_url || ""}
-                    placeholder="https://drive.google.com/file/d/..."
-                    onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], full_video_url: v }; setPortfolio(u); }}
-                  />
+                  {/* Poster + link. With no preview video uploaded, the site
+                      shows the poster and sends visitors to the link, which
+                      keeps a large library off the storage plan entirely. */}
+                  <div className="space-y-3 rounded-lg border border-dashed border-border p-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Poster &amp; full video</p>
+
+                    <div className="flex flex-wrap items-start gap-4">
+                      {item.thumbnail_url ? (
+                        <img src={item.thumbnail_url} alt="" className="h-20 w-36 shrink-0 rounded-md border border-border object-cover" />
+                      ) : (
+                        <div className="grid h-20 w-36 shrink-0 place-items-center rounded-md border border-dashed border-border text-[10px] text-muted-foreground">
+                          No poster
+                        </div>
+                      )}
+
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <label className={`inline-flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                          posterBusy === item.id ? "bg-muted text-muted-foreground" : "bg-accent text-accent-foreground hover:bg-accent/80"
+                        }`}>
+                          {posterBusy === item.id ? (
+                            <><Loader2 className="h-4 w-4 animate-spin" /> Reading frame…</>
+                          ) : (
+                            <><Camera className="h-4 w-4" /> Generate poster from a video</>
+                          )}
+                          <input
+                            type="file"
+                            accept="video/*"
+                            className="hidden"
+                            disabled={posterBusy === item.id}
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) generatePoster(i, f); e.target.value = ""; }}
+                          />
+                        </label>
+                        <p className="text-xs text-muted-foreground">
+                          Pick the video on your machine. It is read locally and only the still is uploaded, so the
+                          file itself is never sent anywhere and its size does not matter.
+                        </p>
+                      </div>
+                    </div>
+
+                    <InputField
+                      label="Poster image URL"
+                      value={item.thumbnail_url || ""}
+                      placeholder="Generated above, or paste your own"
+                      onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], thumbnail_url: v }; setPortfolio(u); }}
+                    />
+
+                    <InputField
+                      label="Full Video Link (Google Drive, YouTube, Vimeo, etc.)"
+                      value={item.full_video_url || ""}
+                      placeholder="https://drive.google.com/file/d/..."
+                      onChange={(v) => { const u = [...portfolio]; u[i] = { ...u[i], full_video_url: v }; setPortfolio(u); }}
+                    />
+                    {driveLinkWarning(item.full_video_url) && (
+                      <p className="text-xs text-destructive">{driveLinkWarning(item.full_video_url)}</p>
+                    )}
+                    {!item.video_url && item.thumbnail_url && item.full_video_url && (
+                      <p className="text-xs text-muted-foreground">
+                        Poster mode: no preview video uploaded, so this item shows its poster and opens the link.
+                      </p>
+                    )}
+                  </div>
 
                   <div className="flex gap-2">
                     <SaveButton onClick={() => savePortfolioItem(portfolio[i])} />
