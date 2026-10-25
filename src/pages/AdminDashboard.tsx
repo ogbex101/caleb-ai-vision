@@ -347,6 +347,7 @@ const AdminDashboard = () => {
 
     setBulkUploading({ done: 0, total: valid.length });
     const created: any[] = [];
+    const failures: string[] = [];
     let baseOrder = portfolio.length;
 
     for (let i = 0; i < valid.length; i++) {
@@ -359,7 +360,19 @@ const AdminDashboard = () => {
         .select()
         .single();
       if (insErr || !newRow) {
-        toast({ title: `Failed to create row for ${rawFile.name}`, variant: "destructive" });
+        // Surfaced rather than swallowed: without it this is a red toast with
+        // no reason, which is indistinguishable from any other failure. A 42501
+        // here means row-level security refused the insert, i.e. the signed-in
+        // account does not hold the admin role.
+        const detail = insErr?.code === "42501"
+          ? "Permission denied by row-level security: this account does not hold the admin role."
+          : insErr?.message || "The database rejected the new row.";
+        toast({
+          title: `Failed to create row for ${rawFile.name}`,
+          description: insErr?.code ? `${detail} (${insErr.code})` : detail,
+          variant: "destructive",
+        });
+        failures.push(rawFile.name);
         setBulkUploading({ done: i + 1, total: valid.length });
         continue;
       }
@@ -380,6 +393,7 @@ const AdminDashboard = () => {
       const blockedBulk = uploadBlocker(file);
       if (blockedBulk) {
         toast({ title: `Skipped ${rawFile.name}`, description: blockedBulk, variant: "destructive" });
+        failures.push(rawFile.name);
         setBulkUploading({ done: i + 1, total: valid.length });
         continue;
       }
@@ -391,7 +405,8 @@ const AdminDashboard = () => {
         .upload(filePath, file, { cacheControl: "3600", upsert: true, contentType: contentTypeFor(file) });
 
       if (upErr) {
-        toast({ title: `Upload failed for ${rawFile.name}: ${upErr.message}`, variant: "destructive" });
+        toast({ title: `Upload failed for ${rawFile.name}`, description: upErr.message, variant: "destructive" });
+        failures.push(rawFile.name);
         setBulkUploading({ done: i + 1, total: valid.length });
         continue;
       }
@@ -405,7 +420,11 @@ const AdminDashboard = () => {
 
     setPortfolio((prev) => [...prev, ...created]);
     setBulkUploading(null);
-    toast({ title: `Uploaded ${created.length} of ${valid.length} videos` });
+    toast({
+      title: `Uploaded ${created.length} of ${valid.length} videos`,
+      description: failures.length ? `Not uploaded: ${failures.join(", ")}` : undefined,
+      variant: failures.length ? "destructive" : "default",
+    });
   };
 
   const toggleFeatured = async (index: number) => {
