@@ -20,7 +20,7 @@ const Portfolio = () => {
         .select("*")
         .order("sort_order");
       if (error) {
-        console.error("portfolio_items request failed", error);
+        console.error(`[supabase] portfolio_items failed: ${error.message} (code ${error.code ?? "none"})`, error);
         setFailed(true);
       }
       if (data) setProjects(data);

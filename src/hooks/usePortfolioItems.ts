@@ -56,7 +56,7 @@ export const usePortfolioItems = ({ featuredOnly, premiumOnly, categorySlug, sub
       if (queryError) {
         // A rejected key, a dropped connection or a blocked request all land
         // here. Reporting it stops the page claiming the library is empty.
-        console.error("portfolio_items request failed", queryError);
+        console.error(`[supabase] portfolio_items failed: ${queryError.message} (code ${queryError.code ?? "none"})`, queryError);
         setError(queryError.message);
         setItems([]);
         setLoading(false);

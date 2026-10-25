@@ -23,7 +23,7 @@ const PortfolioSection = ({ showCertificate = true }: PortfolioSectionProps) => 
         .eq("featured", true)
         .order("sort_order");
       if (error) {
-        console.error("featured portfolio_items request failed", error);
+        console.error(`[supabase] featured portfolio_items failed: ${error.message} (code ${error.code ?? "none"})`, error);
         setFailed(true);
       }
       if (data) setProjects(data);
