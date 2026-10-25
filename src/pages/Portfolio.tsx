@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PortfolioCarousel from "@/components/PortfolioCarousel";
 import DataError from "@/components/DataError";
+import { isExpiredSessionError, recoverFromExpiredSession } from "@/lib/expiredSession";
 
 const Portfolio = () => {
   const [projects, setProjects] = useState<any[]>([]);
@@ -21,6 +22,10 @@ const Portfolio = () => {
         .order("sort_order");
       if (error) {
         console.error(`[supabase] portfolio_items failed: ${error.message} (code ${error.code ?? "none"})`, error);
+        if (isExpiredSessionError(error)) {
+          const recovering = await recoverFromExpiredSession(() => supabase.auth.signOut({ scope: "local" }));
+          if (recovering) return;
+        }
         setFailed(true);
       }
       if (data) setProjects(data);

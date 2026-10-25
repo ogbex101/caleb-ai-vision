@@ -12,8 +12,8 @@ const DataError = ({ what = "this content" }: { what?: string }) => (
     <AlertTriangle className="mx-auto h-5 w-5 text-destructive" />
     <p className="mt-3 text-sm font-medium text-destructive">Couldn't load {what}</p>
     <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-      The database refused the request. This is usually the site's API key being wrong, expired or
-      missing in the hosting environment rather than anything being deleted.
+      The database refused the request, which is a connection problem rather than anything being
+      deleted. Reloading often clears it; the browser console says which request failed and why.
     </p>
   </div>
 );

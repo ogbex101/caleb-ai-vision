@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import PortfolioCarousel from "./PortfolioCarousel";
 import DataError from "./DataError";
+import { isExpiredSessionError, recoverFromExpiredSession } from "@/lib/expiredSession";
 
 interface PortfolioSectionProps {
   showCertificate?: boolean;
@@ -24,6 +25,10 @@ const PortfolioSection = ({ showCertificate = true }: PortfolioSectionProps) => 
         .order("sort_order");
       if (error) {
         console.error(`[supabase] featured portfolio_items failed: ${error.message} (code ${error.code ?? "none"})`, error);
+        if (isExpiredSessionError(error)) {
+          const recovering = await recoverFromExpiredSession(() => supabase.auth.signOut({ scope: "local" }));
+          if (recovering) return;
+        }
         setFailed(true);
       }
       if (data) setProjects(data);

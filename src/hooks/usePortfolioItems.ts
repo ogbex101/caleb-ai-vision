@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { readTags, tagsMatch, type CategoryTag } from "@/lib/categories";
+import { isExpiredSessionError, recoverFromExpiredSession } from "@/lib/expiredSession";
 
 export interface PortfolioItem {
   id: string;
@@ -57,6 +58,12 @@ export const usePortfolioItems = ({ featuredOnly, premiumOnly, categorySlug, sub
         // A rejected key, a dropped connection or a blocked request all land
         // here. Reporting it stops the page claiming the library is empty.
         console.error(`[supabase] portfolio_items failed: ${queryError.message} (code ${queryError.code ?? "none"})`, queryError);
+        // An expired login breaks even anonymous reads, so drop it and reload
+        // as a visitor rather than showing an error for a page about to go.
+        if (isExpiredSessionError(queryError)) {
+          const recovering = await recoverFromExpiredSession(() => supabase.auth.signOut({ scope: "local" }));
+          if (recovering) return;
+        }
         setError(queryError.message);
         setItems([]);
         setLoading(false);
