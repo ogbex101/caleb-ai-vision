@@ -95,7 +95,7 @@ const BrandLogo = ({ variant, to = "/", showWordmark = true, className = "" }: P
 
       {showWordmark && (
         <span className="hidden sm:flex flex-col leading-none">
-          <span className="font-display font-bold text-base tracking-tight gradient-text">{c.name}</span>
+          <span className="font-script text-2xl leading-none gradient-text">{c.name}</span>
           <span className="text-[9px] tracking-[0.28em] uppercase text-muted-foreground mt-1">{c.role}</span>
         </span>
       )}

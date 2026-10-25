@@ -200,19 +200,17 @@ const CinematicHero = ({ heroUrl, isImage, items, tagline, parallaxLayers }: Pro
               AI Film Studio
             </motion.div>
 
-            <h1 className="mt-5 font-display text-[13vw] font-bold leading-[0.82] tracking-tight md:text-[8.5rem]">
-              {["Daniel", "Studio"].map((word, i) => (
-                <span key={word} className="block overflow-hidden">
-                  <motion.span
-                    initial={{ y: reduceMotion ? "0%" : "115%", opacity: reduceMotion ? 0 : 1 }}
-                    animate={{ y: "0%", opacity: 1 }}
-                    transition={{ duration: reduceMotion ? 0.3 : 1.1, delay: reduceMotion ? 0 : 0.2 + i * 0.12, ease: [0.22, 1, 0.36, 1] }}
-                    className={`block ${i === 1 ? "gradient-text-gold" : "text-foreground"}`}
-                  >
-                    {word}
-                  </motion.span>
-                </span>
-              ))}
+            <h1 className="mt-5 font-script text-[19vw] leading-[0.95] md:text-[11rem]">
+              <span className="block overflow-visible">
+                <motion.span
+                  initial={{ opacity: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: reduceMotion ? 0.3 : 1.3, delay: reduceMotion ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  className="block gradient-text-gold"
+                >
+                  Daniel Studio
+                </motion.span>
+              </span>
             </h1>
 
             {/* Fades out and back in as the plate cuts to the next clip, rather

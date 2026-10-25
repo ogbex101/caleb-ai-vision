@@ -14,12 +14,16 @@ export default {
     },
     extend: {
       fontFamily: {
-        // Satoshi for body, Clash Display for headings. The fallbacks are the
-        // visitor's own UI font rather than a generic serif, so a blocked or
-        // slow Fontshare request degrades to something that still looks
-        // intentional instead of Times New Roman.
-        sans: ['Satoshi', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
-        display: ['"Clash Display"', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        // Jost carries body, UI and every small label: it stays readable where
+        // the other two do not.
+        sans: ['Jost', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        // Cormorant Garamond heads sections — elegant enough to sit under a
+        // copperplate wordmark without competing with it.
+        display: ['"Cormorant Garamond"', 'Garamond', 'Georgia', 'ui-serif', 'serif'],
+        // Imperial Script is engraved copperplate: the wordmark and the odd
+        // accent line only. It is unreadable at small sizes, so nothing else
+        // should ever use it.
+        script: ['"Imperial Script"', '"Snell Roundhand"', 'cursive'],
       },
       colors: {
         border: "hsl(var(--border))",

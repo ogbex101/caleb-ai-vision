@@ -95,19 +95,17 @@ const HeroSection = ({ heroUrl, isImage = true }: Props) => {
         style={{ y: typeY, rotateX: reduceMotion ? 0 : tiltX, rotateY: reduceMotion ? 0 : tiltY, mixBlendMode: "multiply" }}
         className="absolute inset-0 flex items-center justify-center bg-background"
       >
-        <h1 className="px-6 text-center font-display text-[19vw] font-bold uppercase leading-[0.82] tracking-[-0.03em] text-white md:text-[13vw]">
-          {TITLE.map((word, i) => (
-            <span key={word} className="block overflow-hidden">
-              <motion.span
-                initial={{ y: reduceMotion ? "0%" : "110%" }}
-                animate={{ y: "0%" }}
-                transition={{ duration: reduceMotion ? 0.3 : 1.2, delay: reduceMotion ? 0 : 0.25 + i * 0.12, ease: [0.22, 1, 0.36, 1] }}
-                className="block"
-              >
-                {word}
-              </motion.span>
-            </span>
-          ))}
+        <h1 className="px-6 text-center font-script text-[26vw] leading-[0.95] text-white md:text-[17vw]">
+          <span className="block overflow-visible">
+            <motion.span
+              initial={{ opacity: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: reduceMotion ? 0.3 : 1.4, delay: reduceMotion ? 0 : 0.25, ease: [0.22, 1, 0.36, 1] }}
+              className="block"
+            >
+              {TITLE.join(" ")}
+            </motion.span>
+          </span>
         </h1>
       </motion.div>
 

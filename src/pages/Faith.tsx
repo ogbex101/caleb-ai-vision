@@ -95,19 +95,17 @@ const FaithHero = ({ heroUrl, isImage }: FaithHeroProps) => (
         </span>
       </motion.div>
 
-      <h1 className="text-6xl md:text-8xl lg:text-9xl font-display font-bold leading-[0.95] mb-8 tracking-tight">
-        {title.map((word, wi) => (
-          <span key={word} className="inline-block overflow-hidden mr-4 last:mr-0">
-            <motion.span
-              className={`inline-block ${wi === 1 ? "gradient-text text-glow" : "text-foreground"}`}
-              initial={{ y: "110%", opacity: 0 }}
-              animate={{ y: "0%", opacity: 1 }}
-              transition={{ duration: 1, delay: 0.6 + wi * 0.15, ease: [0.22, 1, 0.36, 1] }}
-            >
-              {word}
-            </motion.span>
-          </span>
-        ))}
+      <h1 className="font-script text-7xl leading-[1.05] mb-8 md:text-[9rem] lg:text-[11rem]">
+        <span className="inline-block overflow-visible">
+          <motion.span
+            className="inline-block gradient-text text-glow"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.2, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {title.join(" ")}
+          </motion.span>
+        </span>
       </h1>
 
       <motion.p
