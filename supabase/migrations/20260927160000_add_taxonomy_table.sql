@@ -78,4 +78,10 @@ INSERT INTO public.taxonomy (parent_category, slug, label, blurb, sort_order) VA
   ('video-editing', 'trailer', 'Trailer / Teaser', 'Teaser cuts from a feature, series or campaign shoot.', 17),
   ('video-editing', 'bts', 'Behind-the-Scenes', 'Real behind-the-scenes footage edited to support a bigger campaign.', 18),
   ('video-editing', 'wedding', 'Wedding / Ceremony', 'Full-day wedding and ceremony films, from teaser to feature cut.', 19)
-ON CONFLICT (parent_category, slug) DO NOTHING;
+-- Untargeted on purpose. Naming (parent_category, slug) as the arbiter only
+-- consults taxonomy_parent_slug_key, which cannot catch a repeated top-level
+-- slug: those rows have parent_category IS NULL and NULLs compare as distinct
+-- in a UNIQUE constraint. The partial index taxonomy_top_level_slug_idx raises
+-- that case instead, so re-running the seed errored on 'ai-video' rather than
+-- skipping it. A bare DO NOTHING covers every unique constraint on the table.
+ON CONFLICT DO NOTHING;
