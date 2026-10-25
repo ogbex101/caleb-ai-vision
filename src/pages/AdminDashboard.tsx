@@ -1199,7 +1199,10 @@ const AdminDashboard = () => {
                     )}
                     {!item.video_url && item.thumbnail_url && item.full_video_url && (
                       <p className="text-xs text-muted-foreground">
-                        Poster mode: no preview video uploaded, so this item shows its poster and opens the link.
+                        Poster mode: no preview video uploaded, so this item shows its poster and plays the link in a
+                        lightbox. For a Drive link that player only works if the file is shared with
+                        <span className="text-foreground"> Anyone with the link</span> — otherwise visitors get a
+                        sign-in prompt where the video should be.
                       </p>
                     )}
                   </div>

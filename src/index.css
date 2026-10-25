@@ -174,6 +174,23 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
   }
 
+  /* A still that drifts reads as film; one that sits still reads as a broken
+     video. Scaled up first so the pan never exposes an edge. */
+  .ken-burns {
+    animation: ken-burns 22s ease-in-out infinite alternate;
+    transform-origin: 52% 48%;
+    will-change: transform;
+  }
+
+  @keyframes ken-burns {
+    from { transform: scale(1.06) translate3d(-1.2%, -0.8%, 0); }
+    to   { transform: scale(1.14) translate3d(1.2%, 0.8%, 0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ken-burns { animation: none; transform: scale(1.06); }
+  }
+
   .scanlines {
     background-image: repeating-linear-gradient(0deg, transparent 0 2px, hsl(var(--foreground) / 0.5) 2px, hsl(var(--foreground) / 0.5) 3px);
   }

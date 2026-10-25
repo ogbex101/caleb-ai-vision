@@ -1,9 +1,10 @@
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Crown, Play, X } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Crown, Play } from "lucide-react";
 import { useState } from "react";
 import { usePortfolioItems } from "@/hooks/usePortfolioItems";
 import { nicheIcon } from "@/lib/categoryIcons";
 import { readTags, tagLabel } from "@/lib/categories";
+import VideoLightbox from "@/components/VideoLightbox";
 
 /**
  * The flagship showcase, deliberately unlike the main portfolio grid: a
@@ -83,7 +84,7 @@ const PremiumWorkSection = () => {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <img src={current.thumbnail_url || "/placeholder.svg"} alt="" className="h-full w-full object-cover" />
+                <img src={current.thumbnail_url || "/placeholder.svg"} alt="" className="ken-burns h-full w-full object-cover" />
               )}
 
               {/* The sweep: a warm band that wipes across once on reveal */}
@@ -162,35 +163,14 @@ const PremiumWorkSection = () => {
         </div>
       </div>
 
-      <AnimatePresence>
-        {lightbox && current.video_url && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setLightbox(false)}
-            className="fixed inset-0 z-50 grid place-items-center bg-background/95 p-6 backdrop-blur-xl"
-          >
-            <button
-              onClick={() => setLightbox(false)}
-              aria-label="Close"
-              className="absolute right-6 top-6 rounded-full border border-border p-2 text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <motion.video
-              initial={{ scale: reduceMotion ? 1 : 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.4 }}
-              src={current.video_url}
-              controls
-              autoPlay
-              onClick={(e) => e.stopPropagation()}
-              className="max-h-[85vh] w-full max-w-5xl rounded-2xl border border-amber-400/25"
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <VideoLightbox
+        open={lightbox}
+        onClose={() => setLightbox(false)}
+        title={current.title}
+        videoUrl={current.video_url}
+        fullVideoUrl={current.full_video_url}
+      />
+
     </section>
   );
 };

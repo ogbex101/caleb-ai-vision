@@ -1,8 +1,94 @@
 import { motion } from "framer-motion";
 import { ExternalLink, Film, Play, Volume2, VolumeX } from "lucide-react";
+import VideoLightbox from "@/components/VideoLightbox";
+import { isDriveLink } from "@/lib/driveLink";
 import { useEffect, useRef, useState } from "react";
 import type { PortfolioItem } from "@/hooks/usePortfolioItems";
 import { getCategory, getSubCategory } from "@/lib/categories";
+
+/**
+ * Poster card, for a piece whose film lives elsewhere.
+ *
+ * Nothing but a still is hosted here, so the still has to carry it: the image
+ * drifts slowly behind a fixed frame and sits desaturated until hover, when it
+ * lifts to full colour. A static frame that moves reads as film; one that does
+ * not reads as a broken video.
+ */
+const PosterCard = ({ item, index }: { item: PortfolioItem; index: number }) => {
+  const [open, setOpen] = useState(false);
+  const cat = getCategory(item.category_slug);
+  const sub = getSubCategory(item.category_slug, item.subcategory_slug);
+
+  return (
+    <>
+      <motion.article
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-60px" }}
+        transition={{ duration: 0.6, delay: Math.min(index * 0.06, 0.4), ease: [0.22, 1, 0.36, 1] }}
+        whileHover={{ y: -6 }}
+        className="group relative overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-primary/50"
+      >
+        <button
+          onClick={() => setOpen(true)}
+          aria-label={`Play ${item.title}`}
+          className="relative block aspect-video w-full overflow-hidden bg-muted"
+        >
+          {item.thumbnail_url ? (
+            <img
+              src={item.thumbnail_url}
+              alt=""
+              loading="lazy"
+              className="ken-burns h-full w-full object-cover saturate-[0.45] transition-[filter] duration-700 group-hover:saturate-100"
+            />
+          ) : (
+            <span className="grid h-full w-full place-items-center text-muted-foreground"><Film className="h-8 w-8" /></span>
+          )}
+
+          {/* Letterbox bars, so a still reads as a frame of film */}
+          <span className="pointer-events-none absolute inset-x-0 top-0 h-[7%] bg-background/80" />
+          <span className="pointer-events-none absolute inset-x-0 bottom-0 h-[7%] bg-background/80" />
+          <span className="pointer-events-none absolute inset-0 film-grain opacity-40" />
+          <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+
+          <span className="absolute inset-0 grid place-items-center">
+            <span className="grid h-14 w-14 place-items-center rounded-full border border-primary/40 bg-background/70 backdrop-blur-md transition-transform duration-300 group-hover:scale-110">
+              <Play className="ml-0.5 h-5 w-5 text-primary" />
+            </span>
+          </span>
+
+          <span className="absolute bottom-[10%] left-3 rounded-full border border-border bg-background/70 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            {isDriveLink(item.full_video_url) ? "Full film" : "Watch"}
+          </span>
+        </button>
+
+        <div className="space-y-3 p-5">
+          <div className="flex flex-wrap gap-2">
+            {cat && (
+              <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-primary">
+                {cat.label}
+              </span>
+            )}
+            {sub && (
+              <span className="rounded-full border border-border px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                {sub.label}
+              </span>
+            )}
+          </div>
+          <h3 className="font-display text-xl font-bold leading-tight">{item.title}</h3>
+          {item.description && <p className="line-clamp-2 text-sm text-muted-foreground">{item.description}</p>}
+        </div>
+      </motion.article>
+
+      <VideoLightbox
+        open={open}
+        onClose={() => setOpen(false)}
+        title={item.title}
+        fullVideoUrl={item.full_video_url}
+      />
+    </>
+  );
+};
 
 /**
  * Auto-preview card: plays only the first N seconds (30 or 60, set per item in
@@ -130,9 +216,15 @@ const PortfolioGrid = ({ items }: { items: PortfolioItem[] }) => {
   }
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {items.map((item, i) => (
-        <PreviewCard key={item.id} item={item} index={i} />
-      ))}
+      {items.map((item, i) =>
+        // No preview hosted here, but a poster and a link: show the poster and
+        // open the film in a lightbox rather than an empty player.
+        !item.video_url && item.thumbnail_url && item.full_video_url ? (
+          <PosterCard key={item.id} item={item} index={i} />
+        ) : (
+          <PreviewCard key={item.id} item={item} index={i} />
+        ),
+      )}
     </div>
   );
 };
