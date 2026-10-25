@@ -39,17 +39,29 @@ interface Filter {
 export const usePortfolioItems = ({ featuredOnly, premiumOnly, categorySlug, subcategorySlug, aspectRatio }: Filter = {}) => {
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
+  // Kept so callers can tell "the request failed" from "there is nothing here".
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
       setLoading(true);
+      setError(null);
       const db = supabase as any;
       let q = db.from("portfolio_items").select("*").order("sort_order");
       if (featuredOnly) q = q.eq("featured", true);
       if (aspectRatio) q = q.eq("aspect_ratio", aspectRatio);
-      const { data } = await q;
+      const { data, error: queryError } = await q;
       if (cancelled) return;
+      if (queryError) {
+        // A rejected key, a dropped connection or a blocked request all land
+        // here. Reporting it stops the page claiming the library is empty.
+        console.error("portfolio_items request failed", queryError);
+        setError(queryError.message);
+        setItems([]);
+        setLoading(false);
+        return;
+      }
       const rows = ((data as any[]) ?? [])
         .filter((row) => tagsMatch(readTags(row), categorySlug, subcategorySlug))
         // Filtered here rather than with .eq("premium", true): until the
@@ -65,7 +77,7 @@ export const usePortfolioItems = ({ featuredOnly, premiumOnly, categorySlug, sub
     return () => { cancelled = true; };
   }, [featuredOnly, premiumOnly, categorySlug, subcategorySlug, aspectRatio]);
 
-  return { items, loading };
+  return { items, loading, error };
 };
 
 /**

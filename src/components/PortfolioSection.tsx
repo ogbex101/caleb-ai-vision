@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import PortfolioCarousel from "./PortfolioCarousel";
+import DataError from "./DataError";
 
 interface PortfolioSectionProps {
   showCertificate?: boolean;
@@ -12,14 +13,19 @@ interface PortfolioSectionProps {
 const PortfolioSection = ({ showCertificate = true }: PortfolioSectionProps) => {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const fetchFeatured = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("portfolio_items")
         .select("*")
         .eq("featured", true)
         .order("sort_order");
+      if (error) {
+        console.error("featured portfolio_items request failed", error);
+        setFailed(true);
+      }
       if (data) setProjects(data);
       setLoading(false);
     };
@@ -52,6 +58,8 @@ const PortfolioSection = ({ showCertificate = true }: PortfolioSectionProps) => 
 
         {loading ? (
           <div className="text-center text-muted-foreground py-12">Loading...</div>
+        ) : failed ? (
+          <DataError what="the featured work" />
         ) : projects.length === 0 ? (
           <div className="text-center text-muted-foreground py-12">No featured projects yet.</div>
         ) : (

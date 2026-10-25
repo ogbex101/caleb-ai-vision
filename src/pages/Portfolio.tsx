@@ -6,17 +6,23 @@ import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PortfolioCarousel from "@/components/PortfolioCarousel";
+import DataError from "@/components/DataError";
 
 const Portfolio = () => {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("portfolio_items")
         .select("*")
         .order("sort_order");
+      if (error) {
+        console.error("portfolio_items request failed", error);
+        setFailed(true);
+      }
       if (data) setProjects(data);
       setLoading(false);
     };
@@ -44,6 +50,8 @@ const Portfolio = () => {
 
           {loading ? (
             <div className="text-center text-muted-foreground py-12">Loading...</div>
+          ) : failed ? (
+            <DataError what="the portfolio" />
           ) : projects.length === 0 ? (
             <div className="text-center text-muted-foreground py-12">No portfolio items yet.</div>
           ) : (

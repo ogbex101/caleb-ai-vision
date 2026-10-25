@@ -9,6 +9,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { usePageView } from "@/hooks/usePageView";
 import { usePortfolioItems, useSiteLayoutState } from "@/hooks/usePortfolioItems";
 import MaintenanceScreen from "@/components/MaintenanceScreen";
+import DataError from "@/components/DataError";
 import { ASPECT_RATIOS, getCategory, getSubCategory, parseCategoryParam, USERNAMES, type Username } from "@/lib/categories";
 import { categoryIcon, nicheIcon } from "@/lib/categoryIcons";
 
@@ -33,7 +34,7 @@ const CategoryPage = () => {
     `${sub ? `${category?.label ?? ""} / ${sub.label}` : category?.label ?? "Portfolio"} | ${username ? displayNames[username] : "Portfolio"}`,
     sub?.blurb ?? category?.blurb,
   );
-  const { items, loading } = usePortfolioItems({
+  const { items, loading, error: itemsError } = usePortfolioItems({
     categorySlug,
     subcategorySlug: sub?.slug,
     aspectRatio: ratio,
@@ -126,7 +127,13 @@ const CategoryPage = () => {
         </section>
 
         <section className="mx-auto max-w-6xl px-6 py-16">
-          {loading ? <p className="py-16 text-center text-muted-foreground">Loading portfolio…</p> : <PortfolioGrid items={items} />}
+          {loading ? (
+            <p className="py-16 text-center text-muted-foreground">Loading portfolio…</p>
+          ) : itemsError ? (
+            <DataError what="this category" />
+          ) : (
+            <PortfolioGrid items={items} />
+          )}
         </section>
 
         <section className="border-t border-border/60 px-6 py-14">
