@@ -224,6 +224,7 @@ export type Database = {
       site_layouts: {
         Row: {
           active: boolean
+          before_after: Json
           created_at: string
           display_name: string
           hero_media_type: string
@@ -234,6 +235,7 @@ export type Database = {
           maintenance_mode: boolean
           seo_description: string | null
           seo_title: string | null
+          services: Json
           tagline: string | null
           theme: string
           updated_at: string
@@ -241,6 +243,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          before_after?: Json
           created_at?: string
           display_name: string
           hero_media_type?: string
@@ -251,6 +254,7 @@ export type Database = {
           maintenance_mode?: boolean
           seo_description?: string | null
           seo_title?: string | null
+          services?: Json
           tagline?: string | null
           theme?: string
           updated_at?: string
@@ -258,6 +262,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          before_after?: Json
           created_at?: string
           display_name?: string
           hero_media_type?: string
@@ -268,6 +273,7 @@ export type Database = {
           maintenance_mode?: boolean
           seo_description?: string | null
           seo_title?: string | null
+          services?: Json
           tagline?: string | null
           theme?: string
           updated_at?: string

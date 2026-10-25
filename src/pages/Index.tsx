@@ -14,6 +14,7 @@ import BeforeAfterSection from "@/components/BeforeAfterSection";
 import ServicesSection from "@/components/ServicesSection";
 import ProcessSection from "@/components/ProcessSection";
 import ClientResultsSection from "@/components/ClientResultsSection";
+import { readBeforeAfter, readServices } from "@/lib/siteContent";
 import { usePageView } from "@/hooks/usePageView";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useSiteLayoutState } from "@/hooks/usePortfolioItems";
@@ -49,14 +50,14 @@ const Index = () => {
       <PremiumWorkSection />
       <ClientResultsSection />
       <AboutSection />
-      <BeforeAfterSection />
+      <BeforeAfterSection pair={readBeforeAfter(layout?.before_after)} />
       <TechStackSection />
       <CategoryLinkBuilder username="caleb" />
       <section id="portfolio">
         <PortfolioSection />
       </section>
       <ProcessSection />
-      <ServicesSection />
+      <ServicesSection tiers={readServices(layout?.services)} />
       <section id="testimonials">
         <TestimonialsSection username="caleb" />
       </section>

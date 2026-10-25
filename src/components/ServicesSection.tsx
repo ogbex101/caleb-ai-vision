@@ -1,47 +1,21 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Check, Clapperboard, Scissors, Sparkles, type LucideIcon } from "lucide-react";
+import { type ServiceTier, DEFAULT_SERVICES } from "@/lib/siteContent";
 
-interface Tier {
-  icon: LucideIcon;
-  name: string;
-  from: string;
-  summary: string;
-  includes: string[];
-  highlight?: boolean;
+/** Assigned by position: the icon is presentation, not something to edit. */
+const TIER_ICONS: LucideIcon[] = [Scissors, Sparkles, Clapperboard];
+
+interface Props {
+  /** Saved in Admin > Settings; falls back to the shipped defaults. */
+  tiers?: ServiceTier[];
 }
-
-/** Edit these to match what you actually sell — they are copy, not data. */
-const TIERS: Tier[] = [
-  {
-    icon: Scissors,
-    name: "Social cutdowns",
-    from: "£150",
-    summary: "Vertical edits built for the first three seconds.",
-    includes: ["Up to 60 seconds", "Captions and sound design", "9:16, 1:1 and 16:9 exports", "Two rounds of revisions"],
-  },
-  {
-    icon: Sparkles,
-    name: "AI-generated spots",
-    from: "£450",
-    summary: "Concept to finished ad with generated presenters and scenes.",
-    includes: ["Script and storyboard", "AI presenter or full synthesis", "Licensed music and mix", "Three rounds of revisions"],
-    highlight: true,
-  },
-  {
-    icon: Clapperboard,
-    name: "Long-form and brand films",
-    from: "£900",
-    summary: "Documentary, explainer and brand work that holds attention.",
-    includes: ["Up to 10 minutes", "Colour grade and full mix", "Motion graphics and titles", "Unlimited revisions in scope"],
-  },
-];
 
 /**
  * Signature motion: cards unfold. Each one rotates in on its own X axis
  * through a shared perspective, so the row assembles itself in sequence
  * rather than fading in as a block.
  */
-const ServicesSection = () => {
+const ServicesSection = ({ tiers = DEFAULT_SERVICES }: Props) => {
   const reduceMotion = useReducedMotion();
 
   return (
@@ -62,7 +36,7 @@ const ServicesSection = () => {
         </motion.div>
 
         <div className="grid gap-6 md:grid-cols-3" style={{ perspective: 1400 }}>
-          {TIERS.map((tier, i) => (
+          {tiers.map((tier, i) => (
             <motion.div
               key={tier.name}
               initial={{ opacity: 0, rotateX: reduceMotion ? 0 : -18, y: reduceMotion ? 12 : 40 }}
@@ -86,7 +60,10 @@ const ServicesSection = () => {
                   Most requested
                 </span>
               )}
-              <tier.icon className={`h-6 w-6 ${tier.highlight ? "text-primary" : "text-muted-foreground"}`} />
+              {(() => {
+                const Icon = TIER_ICONS[i % TIER_ICONS.length];
+                return <Icon className={`h-6 w-6 ${tier.highlight ? "text-primary" : "text-muted-foreground"}`} />;
+              })()}
               <h3 className="mt-5 font-display text-xl font-bold">{tier.name}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{tier.summary}</p>
               <p className="mt-6 font-display text-3xl font-bold">

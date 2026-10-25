@@ -1,35 +1,19 @@
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import { MoveHorizontal } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import heroBg from "@/assets/hero-bg.jpg";
+import { type BeforeAfter, DEFAULT_BEFORE_AFTER, hasBeforeAfterPair } from "@/lib/siteContent";
 
-interface Pair {
-  label: string;
-  note: string;
-  before: string;
-  after: string;
+interface Props {
+  /** Saved in Admin > Settings. Without two real images the section hides. */
+  pair?: BeforeAfter;
 }
-
-/**
- * Raw footage against the finished grade. Replace these with your own stills
- * (or set them from the dashboard later) — the bundled hero still stands in for
- * both sides so the section renders before you have assets.
- */
-const PAIRS: Pair[] = [
-  {
-    label: "Colour grade",
-    note: "Flat log footage against the final cinematic grade.",
-    before: heroBg,
-    after: heroBg,
-  },
-];
 
 /**
  * Signature motion: the divider itself. The section reveals by sweeping the
  * handle across once, which both demonstrates the control and shows the two
  * states, then hands it to the visitor to drag.
  */
-const BeforeAfterSection = () => {
+const BeforeAfterSection = ({ pair = DEFAULT_BEFORE_AFTER }: Props) => {
   const frameRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
   const inView = useInView(frameRef, { once: true, margin: "-60px" });
@@ -38,7 +22,6 @@ const BeforeAfterSection = () => {
   const [position, setPosition] = useState(reduceMotion ? 50 : 100);
   const [dragging, setDragging] = useState(false);
   const [swept, setSwept] = useState(false);
-  const pair = PAIRS[0];
 
   useEffect(() => {
     if (!inView || swept) return;
@@ -71,6 +54,9 @@ const BeforeAfterSection = () => {
     };
   }, [dragging, setFromClientX]);
 
+  // A comparison needs two real frames; one image shown twice proves nothing.
+  if (!hasBeforeAfterPair(pair)) return null;
+
   return (
     <section id="before-after" className="relative px-6 py-28">
       <div className="mx-auto max-w-5xl">
@@ -101,7 +87,7 @@ const BeforeAfterSection = () => {
             className="relative aspect-video cursor-ew-resize select-none touch-none"
           >
             {/* After sits underneath, revealed as the clip shrinks */}
-            <img src={pair.after} alt={`${pair.label}, after`} className="absolute inset-0 h-full w-full object-cover" />
+            <img src={pair.afterUrl as string} alt={`${pair.label}, after`} className="absolute inset-0 h-full w-full object-cover" />
 
             {/* Before is clipped rather than resized: clip-path hides part of a
                 full-size image, so the footage never squashes as it moves. The
@@ -115,7 +101,7 @@ const BeforeAfterSection = () => {
               }}
             >
               <img
-                src={pair.before}
+                src={pair.beforeUrl as string}
                 alt={`${pair.label}, before`}
                 className="absolute inset-0 h-full w-full object-cover"
                 style={{ filter: "saturate(0.35) contrast(0.85) brightness(0.95)" }}

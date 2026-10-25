@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2, BarChart3, Eye, Copy, Users, Image as ImageIcon, Play, Tags, Gem, Camera } from "lucide-react";
+import { LogOut, Save, Trash2, Plus, MessageSquare, Mail, Settings, ChevronDown, ChevronUp, Upload, Star, Loader2, BarChart3, Eye, Copy, Users, Image as ImageIcon, Play, Tags, Gem, Camera, X } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { ASPECT_RATIOS, MAX_CATEGORY_TAGS, getCategory, readTags, tagsMatch, type CategoryTag } from "@/lib/categories";
 import { refreshCategories, useCategories } from "@/hooks/useCategories";
 import { needsRehosting, videoSourceLabel } from "@/lib/videoSource";
 import { PosterError, posterFromVideo } from "@/lib/posterFromVideo";
 import { driveLinkWarning } from "@/lib/driveLink";
+import { type BeforeAfter, type ServiceTier, DEFAULT_SERVICES, readBeforeAfter, readServices } from "@/lib/siteContent";
+import type { Json } from "@/integrations/supabase/types";
 import CategoryTagsEditor from "@/components/admin/CategoryTagsEditor";
 import { VideoCompressionError, compressVideo, contentTypeFor, shouldCompress } from "@/lib/compressVideo";
 import { cleanEmail, whatsappLink } from "@/lib/contact";
@@ -703,6 +705,61 @@ const AdminDashboard = () => {
     }
     await reloadTaxonomy();
     toast({ title: `Deleted ${row.label}` });
+  };
+
+  /**
+   * Editable homepage copy, written on its own.
+   *
+   * Kept out of saveLayout's payload on purpose: if the services migration has
+   * not been applied, folding these in would make every layout save fail with
+   * a 400 instead of just this one field.
+   */
+  const saveLayoutContent = async (layout: { id: string; services?: ServiceTier[]; before_after?: BeforeAfter }) => {
+    const { error } = await supabase
+      .from("site_layouts")
+      .update({
+        services: (layout.services ?? []) as unknown as Json,
+        before_after: (layout.before_after ?? {}) as unknown as Json,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", layout.id);
+
+    if (error && isMissingColumn(error)) {
+      toast({
+        title: "Not saved: the database needs a migration",
+        description: "Run supabase/migrations/20261025120000_add_layout_services_and_before_after.sql in the Supabase SQL editor.",
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({
+      title: error ? "Failed to save" : "Homepage content saved",
+      description: error?.message,
+      variant: error ? "destructive" : "default",
+    });
+  };
+
+  /** Stores one before/after frame and records its URL on the layout. */
+  const uploadComparisonFrame = async (index: number, side: "beforeUrl" | "afterUrl", file: File) => {
+    const layout = layouts[index];
+    setHeroUploading(`${layout.id}-${side}`);
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `before-after/${layout.username}-${side}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from("portfolio-videos")
+      .upload(path, file, { contentType: contentTypeFor(file), upsert: true });
+    if (error) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      setHeroUploading(null);
+      return;
+    }
+    const { data } = supabase.storage.from("portfolio-videos").getPublicUrl(path);
+    const next = [...layouts];
+    const pair = readBeforeAfter(layout.before_after);
+    next[index] = { ...layout, before_after: { ...pair, [side]: data.publicUrl } };
+    setLayouts(next);
+    setHeroUploading(null);
+    toast({ title: "Frame uploaded", description: "Save homepage content to publish it." });
   };
 
   const saveTestimonial = async (item: any) => {
@@ -1624,6 +1681,134 @@ const AdminDashboard = () => {
                   </div>
 
                   <SaveButton onClick={() => saveLayout(layouts[i])} />
+
+                  {/* --- Homepage copy, saved separately from the fields above --- */}
+                  <div className="space-y-5 border-t border-border pt-5">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Service tiers</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Shown on the homepage. Leave empty to keep the built-in wording.
+                      </p>
+                    </div>
+
+                    {(readServices(layout.services) as ServiceTier[]).map((tier, ti) => {
+                      const tiers = readServices(layout.services) as ServiceTier[];
+                      const update = (patch: Partial<ServiceTier>) => {
+                        const nextTiers = tiers.map((t, k) => (k === ti ? { ...t, ...patch } : t));
+                        const next = [...layouts];
+                        next[i] = { ...layout, services: nextTiers };
+                        setLayouts(next);
+                      };
+                      return (
+                        <div key={ti} className="space-y-3 rounded-lg border border-border bg-background/40 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="font-mono text-[10px] text-muted-foreground">TIER {ti + 1}</span>
+                            <button
+                              onClick={() => {
+                                const next = [...layouts];
+                                next[i] = { ...layout, services: tiers.filter((_, k) => k !== ti) };
+                                setLayouts(next);
+                              }}
+                              aria-label={`Remove ${tier.name || "tier"}`}
+                              className="text-muted-foreground transition-colors hover:text-destructive"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <InputField label="Name" value={tier.name} onChange={(v) => update({ name: v })} />
+                            <InputField label="Price" value={tier.from} placeholder="e.g. £450 or Ask" onChange={(v) => update({ from: v })} />
+                          </div>
+                          <InputField label="One-line summary" value={tier.summary} onChange={(v) => update({ summary: v })} />
+                          <InputField
+                            label="What's included (one per line)"
+                            value={tier.includes.join("\n")}
+                            textarea
+                            rows={4}
+                            onChange={(v) => update({ includes: v.split("\n") })}
+                          />
+                          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(tier.highlight)}
+                              onChange={(e) => update({ highlight: e.target.checked })}
+                              className="h-4 w-4 accent-primary"
+                            />
+                            Mark as “most requested”
+                          </label>
+                        </div>
+                      );
+                    })}
+
+                    <button
+                      onClick={() => {
+                        const tiers = readServices(layout.services) as ServiceTier[];
+                        const next = [...layouts];
+                        next[i] = {
+                          ...layout,
+                          services: [...tiers, { name: "New service", from: "Ask", summary: "", includes: [], highlight: false }],
+                        };
+                        setLayouts(next);
+                      }}
+                      className="flex items-center gap-2 rounded-lg border border-primary/40 px-4 py-2 text-sm font-medium text-primary"
+                    >
+                      <Plus className="h-4 w-4" /> Add a tier
+                    </button>
+
+                    <div className="border-t border-border pt-5">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Before &amp; after</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Both frames are needed. Until then the section stays hidden rather than comparing one image
+                        with itself.
+                      </p>
+                    </div>
+
+                    {(() => {
+                      const pair = readBeforeAfter(layout.before_after);
+                      const patch = (next: Partial<typeof pair>) => {
+                        const copy = [...layouts];
+                        copy[i] = { ...layout, before_after: { ...pair, ...next } };
+                        setLayouts(copy);
+                      };
+                      return (
+                        <div className="space-y-3">
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <InputField label="Label" value={pair.label} onChange={(v) => patch({ label: v })} />
+                            <InputField label="Caption" value={pair.note} onChange={(v) => patch({ note: v })} />
+                          </div>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            {(["beforeUrl", "afterUrl"] as const).map((side) => (
+                              <div key={side} className="space-y-2 rounded-lg border border-border bg-background/40 p-3">
+                                <p className="text-xs font-medium">{side === "beforeUrl" ? "Before (raw)" : "After (graded)"}</p>
+                                {pair[side] ? (
+                                  <img src={pair[side] as string} alt="" className="h-24 w-full rounded-md border border-border object-cover" />
+                                ) : (
+                                  <div className="grid h-24 w-full place-items-center rounded-md border border-dashed border-border text-[10px] text-muted-foreground">
+                                    No frame
+                                  </div>
+                                )}
+                                <label className="flex cursor-pointer items-center gap-2 text-xs text-primary">
+                                  {heroUploading === `${layout.id}-${side}` ? (
+                                    <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…</>
+                                  ) : (
+                                    <><Upload className="h-3.5 w-3.5" /> Upload frame</>
+                                  )}
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadComparisonFrame(i, side, f); e.target.value = ""; }}
+                                  />
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    <SaveButton onClick={() => saveLayoutContent(layouts[i])} label="Save homepage content" />
+                  </div>
                 </div>
               ))}
             </div>
